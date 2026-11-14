@@ -45,8 +45,95 @@ function findBrowserExecutable(): string {
   return 'chrome';
 }
 
+// Template Accent Defaults
+const TEMPLATE_ACCENTS: Record<string, string> = {
+  harshit: '#0f172a',
+  minimalist: '#4f46e5',
+  executive: '#1e3a8a',
+  ivyleague: '#1c1917',
+  consulting: '#0369a1',
+  aispecialist: '#6366f1',
+  growth: '#047857',
+  enterprise: '#1e40af',
+  compact: '#ea580c',
+  nordic: '#0d9488',
+};
+
 // Build clean, professional, ATS-compliant HTML for 1-page PDF
-export function renderResumeHtml(data: ExportResumeData): string {
+export function renderResumeHtml(data: ExportResumeData, styling?: any): string {
+  const templateId = (styling?.templateId as string) || 'harshit';
+  const options = styling?.options || {};
+
+  const accent = options.accentColor || TEMPLATE_ACCENTS[templateId] || '#0f172a';
+  const fontFamilyChoice = options.fontFamily || (templateId === 'ivyleague' ? 'Garamond' : 'Inter');
+  const fontSizePreset = options.fontSize || (templateId === 'compact' ? 'compact' : 'standard');
+  const spacingPreset = options.spacing || (templateId === 'compact' ? 'compact' : 'standard');
+
+  const fontFamilies: Record<string, string> = {
+    'Inter': "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    'Roboto': "'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    'Garamond': "'EB Garamond', Garamond, Georgia, serif",
+    'Georgia': "Georgia, 'Times New Roman', serif",
+    'JetBrains Mono': "'JetBrains Mono', 'Courier New', monospace",
+    'Playfair Display': "'Playfair Display', Georgia, serif",
+  };
+  const activeFont = fontFamilies[fontFamilyChoice] || fontFamilies['Inter'];
+
+  const sizePresets: Record<string, { body: string; lead: string; name: string; sectionTitle: string; roleTitle: string; date: string; meta: string }> = {
+    compact: {
+      body: '8.4pt',
+      lead: '1.28',
+      name: '17.5pt',
+      sectionTitle: '9.6pt',
+      roleTitle: '9pt',
+      date: '7.8pt',
+      meta: '7.8pt'
+    },
+    standard: {
+      body: '9.2pt',
+      lead: '1.38',
+      name: '20.5pt',
+      sectionTitle: '10.5pt',
+      roleTitle: '10pt',
+      date: '8.4pt',
+      meta: '8.4pt'
+    },
+    relaxed: {
+      body: '9.8pt',
+      lead: '1.46',
+      name: '23pt',
+      sectionTitle: '11.5pt',
+      roleTitle: '10.8pt',
+      date: '9pt',
+      meta: '9pt'
+    }
+  };
+  const activeSizes = sizePresets[fontSizePreset] || sizePresets['standard'];
+
+  const spacingPresets: Record<string, { pageMargin: string; sectionMargin: string; itemMargin: string; bulletMargin: string }> = {
+    compact: {
+      pageMargin: '6mm 8mm',
+      sectionMargin: '5px',
+      itemMargin: '3.5px',
+      bulletMargin: '1.5px'
+    },
+    standard: {
+      pageMargin: '8.5mm 10.5mm',
+      sectionMargin: '8px',
+      itemMargin: '5px',
+      bulletMargin: '2.5px'
+    },
+    roomy: {
+      pageMargin: '11mm 13mm',
+      sectionMargin: '12px',
+      itemMargin: '7.5px',
+      bulletMargin: '3.5px'
+    }
+  };
+  const activeSpacing = spacingPresets[spacingPreset] || spacingPresets['standard'];
+
+  const isLeftAligned = ['minimalist', 'consulting', 'aispecialist', 'growth', 'enterprise', 'nordic'].includes(templateId);
+
   const contactParts: string[] = [];
   if (data.location) contactParts.push(escapeHtml(data.location));
   if (data.phone) contactParts.push(escapeHtml(data.phone));
@@ -59,6 +146,20 @@ export function renderResumeHtml(data: ExportResumeData): string {
     const cleanPort = data.portfolioUrl.replace(/^https?:\/\/(www\.)?/, '');
     contactParts.push(`<a href="${escapeHtml(data.portfolioUrl)}" target="_blank">${escapeHtml(cleanPort)}</a>`);
   }
+
+  // Section title formatter
+  const formatSectionTitle = (title: string, index: string = '01'): string => {
+    if (templateId === 'harshit') {
+      return title.toUpperCase().split('').join(' ');
+    }
+    if (templateId === 'aispecialist') {
+      return `&gt; ${index}. ${title.toUpperCase()}`;
+    }
+    if (templateId === 'ivyleague') {
+      return title.toUpperCase();
+    }
+    return title.toUpperCase();
+  };
 
   const experienceHtml = (data.experience || [])
     .map((exp) => {
@@ -87,6 +188,17 @@ export function renderResumeHtml(data: ExportResumeData): string {
 
   const skillsHtml = (data.skills || [])
     .map((cat) => {
+      if (templateId === 'aispecialist') {
+        const chips = (cat.skills || [])
+          .map((s) => `<span class="skill-tag">${escapeHtml(s)}</span>`)
+          .join(' ');
+        return `
+          <div class="skill-row">
+            <strong class="skill-category" style="color: ${accent}; font-family: monospace;">[${escapeHtml(cat.category)}]</strong>
+            <span class="skill-chips">${chips}</span>
+          </div>
+        `;
+      }
       const items = (cat.skills || []).map((s) => escapeHtml(s)).join(', ');
       return `
         <div class="skill-row">
@@ -141,27 +253,35 @@ export function renderResumeHtml(data: ExportResumeData): string {
     })
     .join('');
 
+  // Formatted candidate name based on template
+  const formattedCandidateName = templateId === 'harshit'
+    ? escapeHtml(data.name).toUpperCase().split('').join(' ')
+    : escapeHtml(data.name);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>${escapeHtml(data.name)} - Resume</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     @page {
       size: letter portrait;
-      margin: 9mm 11mm 9mm 11mm;
+      margin: ${activeSpacing.pageMargin};
     }
     *, *::before, *::after {
       box-sizing: border-box;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: ${activeFont};
       color: #0f172a;
       background: #ffffff;
       margin: 0;
       padding: 0;
-      line-height: 1.38;
-      font-size: 9.5pt;
+      line-height: ${activeSizes.lead};
+      font-size: ${activeSizes.body};
       -webkit-font-smoothing: antialiased;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -172,63 +292,81 @@ export function renderResumeHtml(data: ExportResumeData): string {
     }
     .resume-container {
       width: 100%;
-      max-width: 800px;
+      max-width: 816px;
       margin: 0 auto;
     }
-    /* Header */
+    /* Header variants */
     .header {
-      text-align: center;
-      border-bottom: 2px solid #0f172a;
-      padding-bottom: 7px;
-      margin-bottom: 9px;
+      padding-bottom: 6px;
+      margin-bottom: ${activeSpacing.sectionMargin};
+      ${
+        templateId === 'executive'
+          ? `border-top: 4px solid ${accent}; padding-top: 6px; border-bottom: 1.5px solid #cbd5e1;`
+          : templateId === 'minimalist' || templateId === 'consulting'
+          ? `border-bottom: 2.5px solid ${accent};`
+          : templateId === 'ivyleague'
+          ? `text-align: center; border-bottom: 0.75px solid #cbd5e1;`
+          : templateId === 'nordic'
+          ? `border-bottom: 1.5px solid ${accent};`
+          : `border-bottom: 2px solid ${accent};`
+      }
+      ${isLeftAligned ? 'text-align: left;' : 'text-align: center;'}
     }
     .candidate-name {
-      font-size: 20pt;
+      font-size: ${activeSizes.name};
       font-weight: 800;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #0f172a;
-      margin: 0 0 3px 0;
+      letter-spacing: ${templateId === 'harshit' ? '0.12em' : '-0.02em'};
+      color: ${isLeftAligned ? accent : '#0f172a'};
+      margin: 0 0 2px 0;
       line-height: 1.1;
     }
     .contact-bar {
-      font-size: 8.5pt;
+      font-size: ${activeSizes.meta};
       color: #334155;
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
-      gap: 5px 10px;
+      ${isLeftAligned ? 'justify-content: flex-start;' : 'justify-content: center;'}
+      gap: 3px 8px;
     }
     .contact-bar span:not(:last-child)::after {
-      content: " •";
-      margin-left: 8px;
+      content: " ${isLeftAligned ? '|' : '•'}";
+      margin-left: 6px;
       color: #94a3b8;
     }
     /* Section Headings */
     .section-title {
-      font-size: 10pt;
+      font-size: ${activeSizes.sectionTitle};
       font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: #0f172a;
-      border-bottom: 1px solid #94a3b8;
+      letter-spacing: ${templateId === 'harshit' ? '0.08em' : '0.04em'};
+      color: ${accent};
+      ${
+        templateId === 'ivyleague'
+          ? 'text-align: center; border-bottom: 0.75px solid #cbd5e1; letter-spacing: 0.1em;'
+          : templateId === 'aispecialist'
+          ? `font-family: monospace; border-bottom: 1.5px solid ${accent};`
+          : `border-bottom: 1.5px solid ${accent};`
+      }
       padding-bottom: 2px;
-      margin-top: 9px;
-      margin-bottom: 5px;
+      margin-top: ${activeSpacing.sectionMargin};
+      margin-bottom: ${activeSpacing.itemMargin};
       page-break-after: avoid;
       break-after: avoid;
     }
     /* Summary */
     .summary-text {
-      font-size: 8.8pt;
+      font-size: ${activeSizes.body};
       color: #1e293b;
-      margin: 0 0 7px 0;
-      line-height: 1.36;
-      text-align: justify;
+      margin: 0 0 ${activeSpacing.itemMargin} 0;
+      line-height: ${activeSizes.lead};
+      ${
+        templateId === 'executive'
+          ? `background: #f8fafc; border-left: 3.5px solid ${accent}; padding: 5px 8px; border-radius: 2px;`
+          : ''
+      }
     }
     /* Experience */
     .exp-item {
-      margin-bottom: 6px;
+      margin-bottom: ${activeSpacing.itemMargin};
       page-break-inside: avoid;
       break-inside: avoid;
     }
@@ -236,14 +374,14 @@ export function renderResumeHtml(data: ExportResumeData): string {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      font-size: 9.5pt;
+      font-size: ${activeSizes.roleTitle};
     }
     .role-title {
       font-weight: 700;
       color: #0f172a;
     }
     .date-badge {
-      font-size: 8.2pt;
+      font-size: ${activeSizes.date};
       font-weight: 600;
       color: #475569;
     }
@@ -251,40 +389,41 @@ export function renderResumeHtml(data: ExportResumeData): string {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      font-size: 8.8pt;
-      font-style: italic;
+      font-size: ${activeSizes.body};
+      font-style: ${templateId === 'ivyleague' ? 'italic' : 'normal'};
       color: #334155;
-      margin-bottom: 2px;
+      margin-bottom: 1.5px;
     }
     .company-name {
       font-weight: 600;
       color: #1e293b;
     }
     .location-text {
-      font-size: 8pt;
+      font-size: ${activeSizes.meta};
       color: #64748b;
       font-style: normal;
     }
     /* Bullet Points */
     .bullet-list {
-      margin: 1px 0 5px 16px;
+      margin: 1px 0 ${activeSpacing.itemMargin} 15px;
       padding: 0;
     }
     .bullet-list li {
-      font-size: 8.8pt;
+      font-size: ${activeSizes.body};
       color: #1e293b;
-      margin-bottom: 2px;
-      line-height: 1.34;
+      margin-bottom: ${activeSpacing.bulletMargin};
+      line-height: ${activeSizes.lead};
     }
     .metric-bold {
       font-weight: 700;
       color: #000000;
+      ${templateId === 'growth' ? `color: ${accent}; font-weight: 800;` : ''}
     }
     /* Skills */
     .skill-row {
-      font-size: 8.7pt;
-      margin-bottom: 2.5px;
-      line-height: 1.32;
+      font-size: ${activeSizes.body};
+      margin-bottom: 2px;
+      line-height: ${activeSizes.lead};
     }
     .skill-category {
       font-weight: 700;
@@ -293,9 +432,20 @@ export function renderResumeHtml(data: ExportResumeData): string {
     .skill-items {
       color: #1e293b;
     }
+    .skill-tag {
+      display: inline-block;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      padding: 0.5px 4px;
+      font-family: monospace;
+      font-size: 8pt;
+      margin-right: 3px;
+      color: #0f172a;
+    }
     /* Education */
     .edu-item {
-      margin-bottom: 4px;
+      margin-bottom: 3.5px;
       page-break-inside: avoid;
       break-inside: avoid;
     }
@@ -303,7 +453,7 @@ export function renderResumeHtml(data: ExportResumeData): string {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      font-size: 9pt;
+      font-size: ${activeSizes.roleTitle};
       font-weight: 700;
       color: #0f172a;
     }
@@ -311,12 +461,12 @@ export function renderResumeHtml(data: ExportResumeData): string {
       font-weight: 700;
     }
     .degree-text {
-      font-size: 8.5pt;
+      font-size: ${activeSizes.body};
       color: #334155;
     }
     /* Certifications */
     .cert-item {
-      font-size: 8.5pt;
+      font-size: ${activeSizes.body};
       color: #1e293b;
       margin-bottom: 2px;
     }
@@ -326,7 +476,7 @@ export function renderResumeHtml(data: ExportResumeData): string {
   <div class="resume-container">
     <!-- Header -->
     <header class="header">
-      <h1 class="candidate-name">${escapeHtml(data.name)}</h1>
+      <h1 class="candidate-name">${formattedCandidateName}</h1>
       <div class="contact-bar">
         ${contactParts.map((p) => `<span>${p}</span>`).join('')}
       </div>
@@ -337,7 +487,7 @@ export function renderResumeHtml(data: ExportResumeData): string {
       data.summary
         ? `
       <section>
-        <div class="section-title">Professional Summary</div>
+        <div class="section-title">${formatSectionTitle('Professional Summary', '01')}</div>
         <p class="summary-text">${escapeHtml(data.summary)}</p>
       </section>
     `
@@ -349,7 +499,7 @@ export function renderResumeHtml(data: ExportResumeData): string {
       skillsHtml
         ? `
       <section>
-        <div class="section-title">Core Competencies &amp; Skills</div>
+        <div class="section-title">${formatSectionTitle('Core Competencies & Skills', '02')}</div>
         <div class="skills-section">
           ${skillsHtml}
         </div>
@@ -363,7 +513,7 @@ export function renderResumeHtml(data: ExportResumeData): string {
       experienceHtml
         ? `
       <section>
-        <div class="section-title">Professional Experience</div>
+        <div class="section-title">${formatSectionTitle('Professional Experience', '03')}</div>
         ${experienceHtml}
       </section>
     `
@@ -375,7 +525,7 @@ export function renderResumeHtml(data: ExportResumeData): string {
       projectsHtml
         ? `
       <section>
-        <div class="section-title">Key Projects &amp; Initiatives</div>
+        <div class="section-title">${formatSectionTitle('Key Projects & Strategic Initiatives', '04')}</div>
         ${projectsHtml}
       </section>
     `
@@ -387,7 +537,7 @@ export function renderResumeHtml(data: ExportResumeData): string {
       educationHtml
         ? `
       <section>
-        <div class="section-title">Education</div>
+        <div class="section-title">${formatSectionTitle('Education', '05')}</div>
         ${educationHtml}
       </section>
     `
@@ -399,7 +549,7 @@ export function renderResumeHtml(data: ExportResumeData): string {
       certificationsHtml
         ? `
       <section>
-        <div class="section-title">Certifications</div>
+        <div class="section-title">${formatSectionTitle('Certifications', '06')}</div>
         ${certificationsHtml}
       </section>
     `
@@ -411,9 +561,9 @@ export function renderResumeHtml(data: ExportResumeData): string {
 }
 
 // Generate PDF Buffer using headless Chrome / Edge
-export async function generateResumePdf(data: ExportResumeData): Promise<Buffer> {
+export async function generateResumePdf(data: ExportResumeData, styling?: any): Promise<Buffer> {
   const browserPath = findBrowserExecutable();
-  const htmlContent = renderResumeHtml(data);
+  const htmlContent = renderResumeHtml(data, styling);
 
   const timestamp = Date.now();
   const randomSuffix = Math.random().toString(36).substring(2, 8);

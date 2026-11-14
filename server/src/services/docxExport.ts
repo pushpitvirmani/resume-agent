@@ -52,7 +52,7 @@ export interface ExportResumeData {
 }
 
 // Helper to parse markdown **bold** phrases into docx TextRuns
-function parseFormattedRuns(text: string, defaultSize: number = 20): TextRun[] {
+function parseFormattedRuns(text: string, defaultSize: number = 20, font: string = 'Calibri'): TextRun[] {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part) => {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -60,27 +60,40 @@ function parseFormattedRuns(text: string, defaultSize: number = 20): TextRun[] {
         text: part.slice(2, -2),
         bold: true,
         size: defaultSize,
-        font: 'Calibri'
+        font
       });
     }
     return new TextRun({
       text: part,
       bold: false,
       size: defaultSize,
-      font: 'Calibri'
+      font
     });
   });
 }
 
 // Section Header with ATS-compliant bottom border
-function createSectionHeader(title: string): Paragraph {
-  // Tracked uppercase header e.g. "E X P E R I E N C E"
-  const spacedTitle = title.toUpperCase().split('').join(' ');
+function createSectionHeader(
+  title: string,
+  font: string = 'Calibri',
+  size: number = 21,
+  accentColor: string = '0F172A',
+  templateId: string = 'harshit',
+  before: number = 180,
+  after: number = 80
+): Paragraph {
+  let headerText = title.toUpperCase();
+  if (templateId === 'harshit') {
+    headerText = title.toUpperCase().split('').join(' ');
+  } else if (templateId === 'aispecialist') {
+    headerText = `> ${title.toUpperCase()}`;
+  }
+
   return new Paragraph({
-    spacing: { before: 200, after: 100 },
+    spacing: { before, after },
     border: {
       bottom: {
-        color: '333333',
+        color: accentColor,
         space: 3,
         style: BorderStyle.SINGLE,
         size: 6
@@ -88,35 +101,84 @@ function createSectionHeader(title: string): Paragraph {
     },
     children: [
       new TextRun({
-        text: spacedTitle,
+        text: headerText,
         bold: true,
-        size: 21, // ~10.5pt
-        font: 'Calibri',
-        color: '111827'
+        size,
+        font,
+        color: accentColor
       })
     ]
   });
 }
 
-export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer> {
+export async function generateResumeDocx(data: ExportResumeData, styling?: any): Promise<Buffer> {
+  const templateId = (styling?.templateId as string) || 'harshit';
+  const options = styling?.options || {};
+
+  // Font mapping
+  const fontFamilyChoice = options.fontFamily || (templateId === 'ivyleague' ? 'Garamond' : 'Inter');
+  const docxFont = (() => {
+    if (fontFamilyChoice === 'Garamond') return 'Garamond';
+    if (fontFamilyChoice === 'Georgia' || fontFamilyChoice === 'Playfair Display') return 'Georgia';
+    if (fontFamilyChoice === 'JetBrains Mono') return 'Consolas';
+    if (fontFamilyChoice === 'Roboto') return 'Arial';
+    return 'Calibri';
+  })();
+
+  // Accent Color (hex without #)
+  const defaultAccents: Record<string, string> = {
+    harshit: '0F172A',
+    minimalist: '4F46E5',
+    executive: '1E3A8A',
+    ivyleague: '1C1917',
+    consulting: '0369A1',
+    aispecialist: '6366F1',
+    growth: '047857',
+    enterprise: '1E40AF',
+    compact: 'EA580C',
+    nordic: '0D9488',
+  };
+  const rawAccent = options.accentColor ? options.accentColor.replace('#', '').toUpperCase() : (defaultAccents[templateId] || '0F172A');
+  const docxAccent = rawAccent.length === 6 ? rawAccent : '0F172A';
+
+  // Sizing Presets
+  const fontSizePreset = options.fontSize || (templateId === 'compact' ? 'compact' : 'standard');
+  const bodySize = fontSizePreset === 'compact' ? 18 : fontSizePreset === 'relaxed' ? 22 : 20; // 9pt / 11pt / 10pt
+  const roleSize = bodySize + 1;
+  const nameSize = fontSizePreset === 'compact' ? 26 : fontSizePreset === 'relaxed' ? 32 : 28; // 13pt / 16pt / 14pt
+  const headerSize = bodySize + 1;
+
+  // Spacing Presets
+  const spacingPreset = options.spacing || (templateId === 'compact' ? 'compact' : 'standard');
+  const lineSpacing = spacingPreset === 'compact' ? 240 : spacingPreset === 'roomy' ? 320 : 270;
+  const sectionBefore = spacingPreset === 'compact' ? 120 : spacingPreset === 'roomy' ? 240 : 180;
+  const sectionAfter = spacingPreset === 'compact' ? 60 : spacingPreset === 'roomy' ? 120 : 80;
+
+  // Alignment
+  const isLeftAligned = ['minimalist', 'consulting', 'aispecialist', 'growth', 'enterprise', 'nordic'].includes(templateId);
+  const headerAlign = isLeftAligned ? AlignmentType.LEFT : AlignmentType.CENTER;
+  const contactSeparator = isLeftAligned ? '  |  ' : '  •  ';
+
   const paragraphs: Paragraph[] = [];
 
-  // 1. Candidate Name (Centered, tracked uppercase, bold)
+  // 1. Candidate Name
   const candidateName = data.name
-    ? data.name.toUpperCase().split('').join(' ')
-    : 'P U S H P I T   V I R M A N I';
+    ? templateId === 'harshit'
+      ? data.name.toUpperCase().split('').join(' ')
+      : data.name
+    : 'Pushpit Virmani';
 
   paragraphs.push(
     new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 0, after: 60 },
+      alignment: headerAlign,
+      spacing: { before: 0, after: 50 },
       children: [
         new TextRun({
           text: candidateName,
           bold: true,
-          size: 28, // 14pt
-          font: 'Calibri',
-          color: '0F172A'
+          size: nameSize,
+          font: docxFont,
+          color: isLeftAligned ? docxAccent : '0F172A'
         })
       ]
     })
@@ -127,18 +189,18 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
   if (data.location) contactParts.push(data.location);
   if (data.email) contactParts.push(data.email);
   if (data.phone) contactParts.push(data.phone);
-  if (data.linkedinUrl) contactParts.push(data.linkedinUrl);
-  if (data.portfolioUrl) contactParts.push(data.portfolioUrl);
+  if (data.linkedinUrl) contactParts.push(data.linkedinUrl.replace(/^https?:\/\/(www\.)?/, ''));
+  if (data.portfolioUrl) contactParts.push(data.portfolioUrl.replace(/^https?:\/\/(www\.)?/, ''));
 
   paragraphs.push(
     new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 0, after: 180 },
+      alignment: headerAlign,
+      spacing: { before: 0, after: 150 },
       children: [
         new TextRun({
-          text: contactParts.join('  •  '),
-          size: 19, // ~9.5pt
-          font: 'Calibri',
+          text: contactParts.join(contactSeparator),
+          size: bodySize - 1,
+          font: docxFont,
           color: '475569'
         })
       ]
@@ -147,44 +209,44 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
 
   // 3. Summary Section
   if (data.summary && data.summary.trim()) {
-    paragraphs.push(createSectionHeader('Professional Summary'));
+    paragraphs.push(createSectionHeader('Professional Summary', docxFont, headerSize, docxAccent, templateId, sectionBefore, sectionAfter));
     paragraphs.push(
       new Paragraph({
-        spacing: { before: 60, after: 120, line: 276 },
-        children: parseFormattedRuns(data.summary, 20)
+        spacing: { before: 50, after: 100, line: lineSpacing },
+        children: parseFormattedRuns(data.summary, bodySize, docxFont)
       })
     );
   }
 
   // 4. Experience Section
   if (data.experience && data.experience.length > 0) {
-    paragraphs.push(createSectionHeader('Work Experience'));
+    paragraphs.push(createSectionHeader('Work Experience', docxFont, headerSize, docxAccent, templateId, sectionBefore, sectionAfter));
 
     for (const exp of data.experience) {
       // Line 1: Role (Bold) & Dates (Right aligned)
       const dateText = [exp.startDate, exp.endDate].filter(Boolean).join(' - ');
       paragraphs.push(
         new Paragraph({
-          spacing: { before: 100, after: 20 },
+          spacing: { before: 90, after: 20 },
           tabStops: [
             {
               type: TabStopType.RIGHT,
-              position: 10500 // Tab stop to right margin
+              position: 10500
             }
           ],
           children: [
             new TextRun({
               text: exp.role || 'Product Manager',
               bold: true,
-              size: 21,
-              font: 'Calibri',
+              size: roleSize,
+              font: docxFont,
               color: '0F172A'
             }),
             new TextRun({
               children: ['\t', dateText],
               bold: false,
-              size: 20,
-              font: 'Calibri',
+              size: bodySize,
+              font: docxFont,
               color: '475569'
             })
           ]
@@ -194,7 +256,7 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
       // Line 2: Company & Location
       paragraphs.push(
         new Paragraph({
-          spacing: { before: 0, after: 60 },
+          spacing: { before: 0, after: 50 },
           tabStops: [
             {
               type: TabStopType.RIGHT,
@@ -205,15 +267,15 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
             new TextRun({
               text: exp.company || '',
               bold: true,
-              italics: true,
-              size: 20,
-              font: 'Calibri',
+              italics: templateId === 'ivyleague',
+              size: bodySize,
+              font: docxFont,
               color: '334155'
             }),
             new TextRun({
               children: ['\t', exp.location || ''],
-              size: 19,
-              font: 'Calibri',
+              size: bodySize - 1,
+              font: docxFont,
               color: '64748B'
             })
           ]
@@ -226,8 +288,8 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
           paragraphs.push(
             new Paragraph({
               bullet: { level: 0 },
-              spacing: { before: 30, after: 40, line: 260 },
-              children: parseFormattedRuns(bullet, 20)
+              spacing: { before: 20, after: 30, line: lineSpacing },
+              children: parseFormattedRuns(bullet, bodySize, docxFont)
             })
           );
         }
@@ -237,25 +299,25 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
 
   // 5. Skills Section
   if (data.skills && data.skills.length > 0) {
-    paragraphs.push(createSectionHeader('Technical & Product Skills'));
+    paragraphs.push(createSectionHeader('Technical & Product Skills', docxFont, headerSize, docxAccent, templateId, sectionBefore, sectionAfter));
 
     for (const cat of data.skills) {
       const skillsStr = Array.isArray(cat.skills) ? cat.skills.join('  •  ') : '';
       paragraphs.push(
         new Paragraph({
-          spacing: { before: 40, after: 40 },
+          spacing: { before: 30, after: 30 },
           children: [
             new TextRun({
               text: `${cat.category}: `,
               bold: true,
-              size: 20,
-              font: 'Calibri',
-              color: '1E293B'
+              size: bodySize,
+              font: docxFont,
+              color: docxAccent
             }),
             new TextRun({
               text: skillsStr,
-              size: 20,
-              font: 'Calibri',
+              size: bodySize,
+              font: docxFont,
               color: '334155'
             })
           ]
@@ -266,13 +328,13 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
 
   // 6. Education Section
   if (data.education && data.education.length > 0) {
-    paragraphs.push(createSectionHeader('Education'));
+    paragraphs.push(createSectionHeader('Education', docxFont, headerSize, docxAccent, templateId, sectionBefore, sectionAfter));
 
     for (const edu of data.education) {
       const degreeText = [edu.degree, edu.fieldOfStudy].filter(Boolean).join(' in ');
       paragraphs.push(
         new Paragraph({
-          spacing: { before: 80, after: 20 },
+          spacing: { before: 70, after: 20 },
           tabStops: [
             {
               type: TabStopType.RIGHT,
@@ -283,14 +345,14 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
             new TextRun({
               text: degreeText || 'Degree',
               bold: true,
-              size: 21,
-              font: 'Calibri',
+              size: roleSize,
+              font: docxFont,
               color: '0F172A'
             }),
             new TextRun({
               children: ['\t', edu.graduationYear || ''],
-              size: 20,
-              font: 'Calibri',
+              size: bodySize,
+              font: docxFont,
               color: '475569'
             })
           ]
@@ -299,7 +361,7 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
 
       paragraphs.push(
         new Paragraph({
-          spacing: { before: 0, after: 60 },
+          spacing: { before: 0, after: 50 },
           tabStops: [
             {
               type: TabStopType.RIGHT,
@@ -310,14 +372,14 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
             new TextRun({
               text: edu.institution,
               italics: true,
-              size: 20,
-              font: 'Calibri',
+              size: bodySize,
+              font: docxFont,
               color: '334155'
             }),
             new TextRun({
               children: ['\t', edu.honors || ''],
-              size: 19,
-              font: 'Calibri',
+              size: bodySize - 1,
+              font: docxFont,
               color: '64748B'
             })
           ]
@@ -328,26 +390,26 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
 
   // 7. Projects Section (if present)
   if (data.projects && data.projects.length > 0) {
-    paragraphs.push(createSectionHeader('Key Projects & Strategic Initiatives'));
+    paragraphs.push(createSectionHeader('Key Projects & Strategic Initiatives', docxFont, headerSize, docxAccent, templateId, sectionBefore, sectionAfter));
 
     for (const proj of data.projects) {
       paragraphs.push(
         new Paragraph({
-          spacing: { before: 80, after: 20 },
+          spacing: { before: 70, after: 20 },
           children: [
             new TextRun({
               text: proj.title,
               bold: true,
-              size: 21,
-              font: 'Calibri',
+              size: roleSize,
+              font: docxFont,
               color: '0F172A'
             }),
             proj.role
               ? new TextRun({
                   text: ` — ${proj.role}`,
                   italics: true,
-                  size: 20,
-                  font: 'Calibri',
+                  size: bodySize,
+                  font: docxFont,
                   color: '475569'
                 })
               : new TextRun({ text: '' })
@@ -360,8 +422,8 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
           paragraphs.push(
             new Paragraph({
               bullet: { level: 0 },
-              spacing: { before: 20, after: 30 },
-              children: parseFormattedRuns(bullet, 20)
+              spacing: { before: 20, after: 25 },
+              children: parseFormattedRuns(bullet, bodySize, docxFont)
             })
           );
         }
@@ -369,17 +431,18 @@ export async function generateResumeDocx(data: ExportResumeData): Promise<Buffer
     }
   }
 
-  // Build Document with 0.5 in margins (720 dxa)
+  // Build Document with ATS margins
+  const marginInches = (templateId === 'compact' || spacingPreset === 'compact') ? 0.38 : 0.5;
   const doc = new Document({
     sections: [
       {
         properties: {
           page: {
             margin: {
-              top: convertInchesToTwip(0.5),
-              right: convertInchesToTwip(0.5),
-              bottom: convertInchesToTwip(0.5),
-              left: convertInchesToTwip(0.5)
+              top: convertInchesToTwip(marginInches),
+              right: convertInchesToTwip(marginInches),
+              bottom: convertInchesToTwip(marginInches),
+              left: convertInchesToTwip(marginInches)
             }
           }
         },

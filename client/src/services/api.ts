@@ -283,7 +283,7 @@ export const api = {
 
   // Export Engine
   async exportDocx(
-    payload: { resumeData?: any; jobId?: string; profileId?: string },
+    payload: { resumeData?: any; jobId?: string; profileId?: string; styling?: any },
     defaultFilename: string = 'Pushpit_Virmani_Resume.docx'
   ): Promise<void> {
     const res = await fetch('/api/export/docx', {
@@ -316,7 +316,7 @@ export const api = {
   },
 
   async exportPdf(
-    payload: { resumeData?: any; jobId?: string; profileId?: string },
+    payload: { resumeData?: any; jobId?: string; profileId?: string; styling?: any },
     defaultFilename: string = 'Pushpit_Virmani_Resume.pdf'
   ): Promise<void> {
     const res = await fetch('/api/export/pdf', {

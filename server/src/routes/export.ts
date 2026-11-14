@@ -16,8 +16,10 @@ function sanitizeFilename(str: string): string {
 
 // Convert DB MasterResume or TailoredResume into ExportResumeData
 async function resolveExportData(
-  body: { resumeData?: any; jobId?: string; profileId?: string }
-): Promise<{ data: ExportResumeData; filenameBase: string }> {
+  body: { resumeData?: any; jobId?: string; profileId?: string; styling?: any }
+): Promise<{ data: ExportResumeData; filenameBase: string; styling: any }> {
+  let resolvedStyling = body.styling || body.resumeData?.styling || null;
+
   if (body.resumeData) {
     const r = body.resumeData;
     const name = r.name || 'Pushpit Virmani';
@@ -36,7 +38,8 @@ async function resolveExportData(
         projects: r.projects || [],
         certifications: r.certifications || []
       },
-      filenameBase: `${sanitizeFilename(name)}_Resume`
+      filenameBase: `${sanitizeFilename(name)}_Resume`,
+      styling: resolvedStyling
     };
   }
 
@@ -61,6 +64,13 @@ async function resolveExportData(
 
     if (tailoredResume) {
       const content = JSON.parse(tailoredResume.content);
+      if (!resolvedStyling && content.styling) {
+        resolvedStyling = content.styling;
+      }
+      if (!resolvedStyling && master?.styling) {
+        try { resolvedStyling = JSON.parse(master.styling); } catch {}
+      }
+
       const experience = (content.experience || []).map((exp: any) => ({
         company: exp.company,
         role: exp.role,
@@ -87,9 +97,14 @@ async function resolveExportData(
           projects: master?.projects ? JSON.parse(master.projects) : [],
           certifications: master?.certifications ? JSON.parse(master.certifications) : []
         },
-        filenameBase: `${sanitizeFilename(candidateName)}_${sanitizeFilename(job.company)}_Resume`
+        filenameBase: `${sanitizeFilename(candidateName)}_${sanitizeFilename(job.company)}_Resume`,
+        styling: resolvedStyling
       };
     } else if (master) {
+      if (!resolvedStyling && master.styling) {
+        try { resolvedStyling = JSON.parse(master.styling); } catch {}
+      }
+
       return {
         data: {
           name: candidateName,
@@ -105,7 +120,8 @@ async function resolveExportData(
           projects: master.projects ? JSON.parse(master.projects) : [],
           certifications: master.certifications ? JSON.parse(master.certifications) : []
         },
-        filenameBase: `${sanitizeFilename(candidateName)}_${sanitizeFilename(job.company)}_Resume`
+        filenameBase: `${sanitizeFilename(candidateName)}_${sanitizeFilename(job.company)}_Resume`,
+        styling: resolvedStyling
       };
     }
   }
@@ -124,6 +140,10 @@ async function resolveExportData(
 
   if (!defaultMaster) {
     throw new Error('No master resume data available');
+  }
+
+  if (!resolvedStyling && defaultMaster.styling) {
+    try { resolvedStyling = JSON.parse(defaultMaster.styling); } catch {}
   }
 
   const profileObj = profileIdToUse !== 'default'
@@ -146,15 +166,16 @@ async function resolveExportData(
       projects: defaultMaster.projects ? JSON.parse(defaultMaster.projects) : [],
       certifications: defaultMaster.certifications ? JSON.parse(defaultMaster.certifications) : []
     },
-    filenameBase: `${sanitizeFilename(defaultMaster.name)}${profileSuffix}_Resume`
+    filenameBase: `${sanitizeFilename(defaultMaster.name)}${profileSuffix}_Resume`,
+    styling: resolvedStyling
   };
 }
 
 // POST /api/export/docx - Export Single Resume as .docx
 router.post('/docx', async (req, res) => {
   try {
-    const { data, filenameBase } = await resolveExportData(req.body);
-    const buffer = await generateResumeDocx(data);
+    const { data, filenameBase, styling } = await resolveExportData(req.body);
+    const buffer = await generateResumeDocx(data, styling);
 
     const filename = `${filenameBase}.docx`;
     res.setHeader(
@@ -173,8 +194,8 @@ router.post('/docx', async (req, res) => {
 // POST /api/export/pdf - Export Single Resume as ATS-optimized 1-page .pdf
 router.post('/pdf', async (req, res) => {
   try {
-    const { data, filenameBase } = await resolveExportData(req.body);
-    const buffer = await generateResumePdf(data);
+    const { data, filenameBase, styling } = await resolveExportData(req.body);
+    const buffer = await generateResumePdf(data, styling);
 
     const filename = `${filenameBase}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
@@ -216,13 +237,13 @@ router.post('/batch', async (req, res) => {
     for (let i = 0; i < jobIds.length; i++) {
       const jId = jobIds[i];
       try {
-        const { data, filenameBase } = await resolveExportData({ jobId: jId });
+        const { data, filenameBase, styling } = await resolveExportData({ jobId: jId });
         if (format === 'pdf') {
-          const pdfBuffer = await generateResumePdf(data);
+          const pdfBuffer = await generateResumePdf(data, styling);
           const entryName = `${String(i + 1).padStart(2, '0')}_${filenameBase}.pdf`;
           archive.append(pdfBuffer, { name: entryName });
         } else {
-          const docxBuffer = await generateResumeDocx(data);
+          const docxBuffer = await generateResumeDocx(data, styling);
           const entryName = `${String(i + 1).padStart(2, '0')}_${filenameBase}.docx`;
           archive.append(docxBuffer, { name: entryName });
         }

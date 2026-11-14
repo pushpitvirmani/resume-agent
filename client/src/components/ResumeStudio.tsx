@@ -65,14 +65,24 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
   const [exportingDocx, setExportingDocx] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
 
+  // Template customizer state
+  const [templateId, setTemplateId] = useState<TemplateId>('harshit');
+  const [options, setOptions] = useState<TemplateStyleOptions>({
+    fontFamily: 'Inter',
+    fontSize: 'standard',
+    spacing: 'standard',
+    accentColor: '#0f172a',
+  });
+
   const handleExportDocx = async () => {
     if (!renderable) return;
     try {
       setExportingDocx(true);
+      const styling = { templateId, options };
       if (selectedSource !== 'master') {
-        await api.exportDocx({ jobId: selectedSource, profileId: activeProfileId });
+        await api.exportDocx({ jobId: selectedSource, profileId: activeProfileId, styling });
       } else {
-        await api.exportDocx({ resumeData: renderable, profileId: activeProfileId });
+        await api.exportDocx({ resumeData: renderable, profileId: activeProfileId, styling });
       }
     } catch (err: any) {
       alert(`Export failed: ${err.message || 'Error generating DOCX'}`);
@@ -85,10 +95,11 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
     if (!renderable) return;
     try {
       setExportingPdf(true);
+      const styling = { templateId, options };
       if (selectedSource !== 'master') {
-        await api.exportPdf({ jobId: selectedSource, profileId: activeProfileId });
+        await api.exportPdf({ jobId: selectedSource, profileId: activeProfileId, styling });
       } else {
-        await api.exportPdf({ resumeData: renderable, profileId: activeProfileId });
+        await api.exportPdf({ resumeData: renderable, profileId: activeProfileId, styling });
       }
     } catch (err: any) {
       alert(`PDF Export failed: ${err.message || 'Error generating PDF'}`);
@@ -96,15 +107,6 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
       setExportingPdf(false);
     }
   };
-
-  // Template customizer state
-  const [templateId, setTemplateId] = useState<TemplateId>('harshit');
-  const [options, setOptions] = useState<TemplateStyleOptions>({
-    fontFamily: 'Inter',
-    fontSize: 'standard',
-    spacing: 'standard',
-    accentColor: '#0f172a',
-  });
 
   const [zoomLevel, setZoomLevel] = useState<number>(95);
   const [autoFitOnePage, setAutoFitOnePage] = useState<boolean>(true);

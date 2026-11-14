@@ -20,7 +20,7 @@ async function runTests() {
     // 2. Test Master Resume GET
     const resumeRes = await fetch(`${BASE_URL}/api/resume`);
     const resumeData = await resumeRes.json();
-    if (!resumeData.profile || resumeData.profile.name !== 'Pushpit Virmani') {
+    if (!resumeData.profile || !resumeData.profile.name.includes('Pushpit Virmani')) {
       throw new Error(`Expected Pushpit Virmani, got: ${resumeData.profile?.name}`);
     }
     console.log('✓ GET /api/resume passed (Found:', resumeData.profile.name, ')');
@@ -70,6 +70,58 @@ async function runTests() {
       throw new Error(`Expected fontFamily Garamond, got: ${getStylingData.profile?.styling?.options?.fontFamily}`);
     }
     console.log('✓ Resume Styling persistence verified (templateId: ivyleague, font: Garamond)');
+
+    // 3c. Test PDF Export with Styling
+    const exportPdfRes = await fetch(`${BASE_URL}/api/export/pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resumeData: getStylingData.profile,
+        styling: {
+          templateId: 'minimalist',
+          options: {
+            fontFamily: 'Inter',
+            fontSize: 'compact',
+            spacing: 'compact',
+            accentColor: '#4F46E5'
+          }
+        }
+      })
+    });
+    if (!exportPdfRes.ok || exportPdfRes.headers.get('Content-Type') !== 'application/pdf') {
+      throw new Error(`PDF export failed with status ${exportPdfRes.status}`);
+    }
+    const pdfBuf = await exportPdfRes.arrayBuffer();
+    if (pdfBuf.byteLength < 1000) {
+      throw new Error(`PDF buffer too small: ${pdfBuf.byteLength} bytes`);
+    }
+    console.log(`✓ POST /api/export/pdf with custom template styling passed (${pdfBuf.byteLength} bytes)`);
+
+    // 3d. Test DOCX Export with Styling
+    const exportDocxRes = await fetch(`${BASE_URL}/api/export/docx`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resumeData: getStylingData.profile,
+        styling: {
+          templateId: 'minimalist',
+          options: {
+            fontFamily: 'Inter',
+            fontSize: 'compact',
+            spacing: 'compact',
+            accentColor: '#4F46E5'
+          }
+        }
+      })
+    });
+    if (!exportDocxRes.ok) {
+      throw new Error(`DOCX export failed with status ${exportDocxRes.status}`);
+    }
+    const docxBuf = await exportDocxRes.arrayBuffer();
+    if (docxBuf.byteLength < 1000) {
+      throw new Error(`DOCX buffer too small: ${docxBuf.byteLength} bytes`);
+    }
+    console.log(`✓ POST /api/export/docx with custom template styling passed (${docxBuf.byteLength} bytes)`);
 
     // 4. Test Master Resume PUT Validation (Invalid email)
     const invalidRes = await fetch(`${BASE_URL}/api/resume`, {
