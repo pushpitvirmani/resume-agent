@@ -7,26 +7,21 @@ updated: 2026-11-14T19:26:45+05:30
 ## Current Position
 
 **Milestone:** v1.0 (MVP)  
-**Phase:** 3 - Gemini AI Resume Tailoring, Diff Viewer & Interactive Feedback (COMPLETE)  
-**Next Phase:** 4 - ATS Template Studio & Resume Builder  
-**Status:** ready_for_planning  
-**Plan:** None  
+**Phase:** 4 - ATS Template Studio & Resume Builder  
+**Status:** in_progress  
+**Plan:** 01-PLAN.md (Wave 1)  
 
 ## Last Action
 
-Executed Phase 3 across all plans:
-- 01-PLAN: Backend AI tailoring engine using Gemini (`gemini-3.1-flash-lite`), Harshit Kumar style bold hooks, strict factual preservation, ATS scoring, conversational refinement, and guideline candidate extraction (`e0db76d`).
-- 02-PLAN: Frontend `TailorStudio.tsx` with target job selector, live ATS score gauge & keyword chips, side-by-side visual diff, in-place editable textareas, docked revision chat, and explicit `GuidelineConfirmationModal.tsx` strictly requiring user confirmation before saving rules (`2f18e4c`).
-- All tests pass (`npm --prefix server test` code 0, `npm --prefix server run test:tailor` code 0, `npm --prefix client run build` code 0).
-- Live server verified: Successfully tailored discovered job with 94% ATS score.
+Planned Phase 4 completely:
+- 01-PLAN.md: ATS Template engine, Harshit Kumar reference archetype, Minimalist, and Executive Leader templates.
+- 02-PLAN.md: Resume Studio canvas, source toggling (Master vs. Job-Tailored), real-time styling controls, and 6-point ATS Compliance Evaluator.
 
 ## Next Steps
 
-1. Run `/plan 4` to decompose Phase 4:
-   - Harshit Kumar FAANG/AI startup ATS template implementation (HTML/CSS + Canvas/SVG rendering).
-   - Live template customization controls (spacing, font size, accent color).
-   - ATS keyword & formatting score evaluator.
-2. Execute Phase 4 plans.
+1. Execute Plan 4.1: Build template components and Harshit reference archetype.
+2. Execute Plan 4.2: Build ResumeStudio workspace and ATS Compliance Evaluator.
+3. Verify Phase 4 completion.
 
 ## Active Decisions
 
