@@ -22,7 +22,7 @@ must_haves:
   truths:
     - "Root project and Express backend scaffold initialize and boot cleanly on Windows"
     - "SQLite database schema is created via Prisma with models for MasterResume, Job, TailoredResume, ResumeGuideline, and AppSettings"
-    - "Database seed script successfully inserts a rich default FAANG/AI PM master resume profile, baseline guidelines, and default scraper settings (max 25 jobs, past_week date filter)"
+    - "Database seed script successfully inserts Pushpit Virmani's actual master resume profile (from .gsd/MASTER_RESUME.json), baseline guidelines, and default scraper settings (max 25 jobs, past_week date filter)"
   artifacts:
     - "package.json"
     - "server/package.json"
@@ -36,7 +36,7 @@ must_haves:
 # Plan 1.1: Application Scaffold & Data Persistence Foundation
 
 ## Objective
-Establish the project workspace architecture for the local personal web app with Node.js, Express, TypeScript, and Prisma with SQLite. Define typed relational schemas for the Master Resume profile (contact, summary, experience, projects, skills, education), Job postings, Learned Resume Guidelines (`ResumeGuideline`), and Application Settings (`AppSettings` storing scraper limits, date-from cutoff, and schedule). Execute the initial migration and seed script.
+Establish the project workspace architecture for the local personal web app with Node.js, Express, TypeScript, and Prisma with SQLite. Define typed relational schemas for the Master Resume profile (contact, summary, experience, projects, skills, education), Job postings, Learned Resume Guidelines (`ResumeGuideline`), and Application Settings (`AppSettings` storing scraper limits, date-from cutoff, and schedule). Execute the initial migration and seed script using Pushpit Virmani's actual master resume profile from `.gsd/MASTER_RESUME.json`.
 
 ## Context
 Load these files for context:
@@ -44,6 +44,8 @@ Load these files for context:
 - .gsd/REQUIREMENTS.md
 - .gsd/ROADMAP.md
 - .gsd/DECISIONS.md
+- .gsd/MASTER_RESUME.json
+- .gsd/STYLE_HARSHIT.md
 - PROJECT_RULES.md
 
 ## Tasks
@@ -167,7 +169,7 @@ Load these files for context:
     3. Create `server/src/types/resume.ts` with TypeScript interfaces and Zod schemas:
        - `ExperienceItem`: id, company, role, location, startDate, endDate, isCurrent, bullets (string[])
        - `ProjectItem`: id, title, role, tools (string[]), link, bullets (string[])
-       - `SkillCategory`: category (e.g. "Product Strategy", "AI & Machine Learning", "Analytics & Tech"), skills (string[])
+       - `SkillCategory`: category, skills (string[])
        - `EducationItem`: id, institution, degree, fieldOfStudy, graduationYear, honors
        - `ResumeGuidelineItem`: id, rule, category, active, createdAt
        - `AppSettingsItem`: id, activeAiProvider, dailyScheduleCron, maxScrapeJobs, scrapeDateFrom, dateFilterPreset, keywords, location, headless
@@ -175,7 +177,8 @@ Load these files for context:
        - `resumeProfileSchema`: Zod schema validating input before database save.
        - `settingsSchema`: Zod schema validating scraper limits and date filters.
     4. Create `server/prisma/seed.ts` that:
-       - Checks if a `MasterResume` record exists. If not, inserts a comprehensive FAANG/AI startup Senior Product Manager profile.
+       - Checks if a `MasterResume` record exists.
+       - If not, inserts Pushpit Virmani's actual master profile directly from `.gsd/MASTER_RESUME.json` (Spyne.ai, Paytm, Cocolabs, Infosys, ESCP, MDI, DIT, and full skills list).
        - Inserts baseline guidelines into `ResumeGuideline` table.
        - Upserts default `AppSettings` with `maxScrapeJobs: 25`, `dateFilterPreset: "past_week"`.
     5. Run `npx prisma db push` to initialize the SQLite database file (`server/dev.db`) and run `npx tsx prisma/seed.ts`.
@@ -187,7 +190,7 @@ Load these files for context:
     cd server && npx prisma db push && npx tsx prisma/seed.ts
   </verify>
   <done>
-    `dev.db` is created in `server/`, Prisma client is generated, and seed script completes with confirmation that master resume profile, baseline guidelines, and AppSettings were inserted.
+    `dev.db` is created in `server/`, Prisma client is generated, and seed script completes with confirmation that Pushpit Virmani's master resume profile, baseline guidelines, and AppSettings were inserted.
   </done>
 </task>
 
@@ -196,10 +199,10 @@ Load these files for context:
 ## Must-Haves
 After all tasks complete, verify:
 - [ ] SQLite database is created at `server/dev.db` with tables for `MasterResume`, `Job`, `TailoredResume`, `ResumeGuideline`, and `AppSettings`
-- [ ] PrismaClient singleton can read the seeded master resume profile, guidelines, and app settings
+- [ ] PrismaClient singleton can read Pushpit Virmani's seeded master resume profile, guidelines, and app settings
 - [ ] Server starts without runtime errors via `tsx src/index.ts`
 
 ## Success Criteria
 - [ ] All tasks verified passing
 - [ ] Must-haves confirmed
-- [ ] Database schema is migration-ready and seed data exists
+- [ ] Database schema is migration-ready and seed data exists with Pushpit Virmani's exact resume

@@ -1,0 +1,150 @@
+{
+  "name": "Pushpit Virmani",
+  "title": "Senior Product Manager",
+  "email": "pushpitvirmani@gmail.com",
+  "phone": "(+91) 7895634749",
+  "location": "Gurgaon, India",
+  "linkedinUrl": "https://www.linkedin.com/in/pushpit-virmani/",
+  "portfolioUrl": "",
+  "summary": "Result-driven Senior Product Manager with 5+ years of experience in the Tech and AI industry. Holds a Master's degree from ESCP Business School combining business acumen with deep technical understanding of AI/ML, conversational agents, and checkout payment platforms. Demonstrated track record in driving 0→1 product launches ($250k ARR in 10 days), scaling merchant GMV (50+ Cr GMV increase at Paytm), building Voice/Chatbot AI agents, and implementing data-driven product strategies with cross-functional engineering and GTM teams.",
+  "experience": [
+    {
+      "id": "exp-1",
+      "company": "Spyne.ai – AI SAAS for Automobile",
+      "role": "Senior Product Manager – Retail Suite (Website Builder, CRM, Conversational AI & Inventory Management)",
+      "location": "Gurgaon, India",
+      "startDate": "Feb 2024",
+      "endDate": "Present",
+      "isCurrent": true,
+      "bullets": [
+        "Led the product development & pilot of automobile-first retail management suite which generated $250k ARR within 10 days of launch",
+        "Launched Voice/chat Bot AI agents capable of handling inbound/outbound sales calls along with their evaluation framework",
+        "Directly managed a team of 2 Product Managers to solve publishing across website providers, marketplaces and social media platforms",
+        "Innovated an industry-first feature achieving one-click data migration which slashed migration time from 48 hours to just 15 minutes",
+        "Handled multiple integrations through browser automation with DMS providers, Inventory management systems and website providers",
+        "Crafted GTM strategy, conducted product demos during sales calls for US clients and determined an optimal competitor based pricing",
+        "Facilitated seamless integration with external partners to incorporate finance & reporting tools enhancing the platform's functionality"
+      ]
+    },
+    {
+      "id": "exp-2",
+      "company": "Paytm – Digital Payments and Financial Services",
+      "role": "Product Manager - Payments",
+      "location": "Noida, India",
+      "startDate": "May 2022",
+      "endDate": "Feb 2024",
+      "isCurrent": false,
+      "bullets": [
+        "Spearheaded UX/UI initiatives on checkout page & app invoke flow thereby improving customer experience for iOS/Android users",
+        "Led end-to-end merchant integration projects and successfully onboarded Manipur eGRAS treasury resulting in 50+ cr GMV increase",
+        "Created pulse events and designed custom dashboards to visualize user journeys, drop-off patterns and reduced pay click drop by 5%",
+        "Successfully conducted RCAs related to fraud, risk and transactional issues to ensure overall operational efficiency of the organization",
+        "Leveraged user data to introduce retries in direct settlement transactions leading to success rate improvement of 3% for QR merchants",
+        "Worked with cross-functional team to introduce a new vendor onboarding flow for split settlement merchants having GMV of 100+ cr",
+        "Introduced fee charging for split settlement, aligning business model with industry standards yielding direct profit of 60 lacs/year"
+      ]
+    },
+    {
+      "id": "exp-3",
+      "company": "Cocolabs – SAAS for Marketplaces",
+      "role": "Product Management Intern",
+      "location": "Paris, Europe",
+      "startDate": "Apr 2021",
+      "endDate": "Oct 2021",
+      "isCurrent": false,
+      "bullets": [
+        "Successfully led the product development process from ideation to execution for creating digital marketplaces for European clients",
+        "Developed a comprehensive product roadmap and managed a budget allocation of 100,000€ to ensure optimal resource utilization",
+        "Spearheaded initiatives to enhance the efficiency of the service desk achieving a 40% reduction in response time for resolving issues",
+        "Performed comprehensive market research on digital marketplaces identifying offerings, target segments, KPIs and pain points"
+      ]
+    },
+    {
+      "id": "exp-4",
+      "company": "Infosys – IT Service & Consulting",
+      "role": "Software Engineer",
+      "location": "Trivandrum, India",
+      "startDate": "Jul 2018",
+      "endDate": "May 2020",
+      "isCurrent": false,
+      "bullets": [
+        "Conducted code, sprint and feature reviews to ensure code quality leading to 100% acceptance rate of deliverable user stories",
+        "Collaborated with internal and external stakeholders to lead sprint planning and translating business requirements into technical specs",
+        "Played a crucial role in aligning functional, technical and business requirements as per the principles of Agile methodologies",
+        "Received exceptional performance certificate by client Estee Lauder for developing 100+ microservices in the span of the project",
+        "Automated regression testing reducing manual intervention time and gained hands-on experience on JIRA, MySQL"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-1",
+      "title": "Voice/Chatbot AI Sales Agent Suite",
+      "role": "Lead Product Manager",
+      "tools": ["Conversational AI", "VAPI", "Prompt Engineering", "Python", "LLMs"],
+      "link": "",
+      "bullets": [
+        "Architected an autonomous conversational AI agent handling complex automotive sales workflows with high accuracy evaluation benchmarks"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "category": "Product Strategy & Management",
+      "skills": ["Product Roadmapping", "GTM Strategy", "Sprint Planning", "Agile/Scrum", "User Journey Mapping", "RCA & Risk Management", "Pricing Strategy", "0→1 Launches"]
+    },
+    {
+      "category": "AI, Automation & Tools",
+      "skills": ["Conversational AI", "Voice AI Agents (VAPI)", "N8N", "Cursor", "V0", "Replit", "Browser Automation", "Prompt Engineering"]
+    },
+    {
+      "category": "Technical & Analytics",
+      "skills": ["SQL", "Java", "React", "MySQL", "Android/iOS Development", "Microservices", "REST APIs", "JIRA", "Confluence", "Figma", "Pulse"]
+    },
+    {
+      "category": "Languages",
+      "skills": ["English (Bilingual)", "Hindi (Native)", "French (Beginner)"]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu-1",
+      "institution": "ESCP Business School",
+      "degree": "Master in Management",
+      "fieldOfStudy": "Marketing",
+      "graduationYear": "2022",
+      "honors": "Paris, France"
+    },
+    {
+      "id": "edu-2",
+      "institution": "Management Development Institute (MDI)",
+      "degree": "MBA",
+      "fieldOfStudy": "International Business",
+      "graduationYear": "2022",
+      "honors": "Gurgaon, India"
+    },
+    {
+      "id": "edu-3",
+      "institution": "Dehradun Institute of Technology",
+      "degree": "Bachelor of Technology",
+      "fieldOfStudy": "Computer Science",
+      "graduationYear": "2018",
+      "honors": "Dehradun, India"
+    }
+  ],
+  "certifications": [
+    {
+      "id": "cert-1",
+      "name": "Estee Lauder Client Recognition Certificate (100+ Microservices)",
+      "issuer": "Estee Lauder / Infosys",
+      "year": "2019"
+    }
+  ],
+  "activities": [
+    {
+      "id": "act-1",
+      "title": "Jan Manthan Adhikar (NGO)",
+      "description": "Planning and implementation of weekly knowledge sessions for underprivileged kids"
+    }
+  ]
+}
