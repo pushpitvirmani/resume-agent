@@ -32,7 +32,7 @@ must_haves:
     - "Job Feed includes a targeted keyword search bar to prevent random scraping"
     - "User can view and edit their master resume profile (contact, summary, experience bullets, projects, skills, education) in the web UI"
     - "User can drag-and-drop or select an existing PDF/DOCX resume file to automatically parse and populate fields"
-    - "Settings panel allows inspecting and switching active AI model (Gemini, Claude, GPT) and testing connections"
+    - "Settings panel allows inspecting and switching active AI model (Gemini, Claude, GPT) and managing confirmed global guidelines"
     - "Saving changes sends a validated PUT request to the backend and updates the SQLite database"
     - "Client build passes cleanly with zero TypeScript or Tailwind compilation errors"
   artifacts:
@@ -48,10 +48,10 @@ must_haves:
     - "client/src/components/SettingsPanel.tsx"
 ---
 
-# Plan 1.3: 5-Section Dashboard Panel & Master Resume Studio UI
+# Plan 1.3: 5-Section Dashboard Panel, Guidelines Manager & Master Resume Studio UI
 
 ## Objective
-Build the responsive React + Vite + Tailwind CSS web application interface with the agreed 5-section navigation panel: Overview Dashboard, LinkedIn Job Feed (with targeted keyword search), Tailor & Review Studio (prepared for Phase 3), Resume Builder & Template Studio (prepared for Phase 4), and Settings Center (LinkedIn session, scheduler, and Multi-model AI selector for Gemini, Claude, and GPT). Provide full Master Resume management with one-click PDF/DOCX file upload parsing and persistent SQLite storage.
+Build the responsive React + Vite + Tailwind CSS web application interface with the agreed 5-section navigation panel: Overview Dashboard, LinkedIn Job Feed (with targeted keyword search), Tailor & Review Studio (prepared for Phase 3), Resume Builder & Template Studio (prepared for Phase 4), and Settings Center (LinkedIn session, scheduler, Multi-model AI selector for Gemini, Claude, and GPT, and confirmed Global Resume Guidelines manager). Provide full Master Resume management with one-click PDF/DOCX file upload parsing and persistent SQLite storage.
 
 ## Context
 Load these files for context:
@@ -59,14 +59,16 @@ Load these files for context:
 - .gsd/REQUIREMENTS.md
 - .gsd/ROADMAP.md
 - .gsd/DECISIONS.md
+- PROJECT_RULES.md
 - server/src/types/resume.ts
 - server/src/routes/resume.ts
+- server/src/routes/guidelines.ts
 - server/src/routes/ai.ts
 
 ## Tasks
 
 <task type="auto">
-  <name>Scaffold 5-Section Navigation Shell, Overview Dashboard & Settings Panel</name>
+  <name>Scaffold 5-Section Navigation Shell, Overview Dashboard & Settings Panel with Guidelines Manager</name>
   <files>
     client/package.json
     client/tsconfig.json
@@ -92,7 +94,7 @@ Load these files for context:
     2. Configure `client/vite.config.ts` with React plugin and server proxy (`/api` -> `http://localhost:5000`).
     3. Configure `client/tailwind.config.js` and `client/postcss.config.js` with content scanning `./src/**/*.{ts,tsx}` and modern dark-mode ready slate theme.
     4. Create `client/src/types.ts` defining types matching the server:
-       - `ResumeProfile`, `ExperienceItem`, `ProjectItem`, `SkillCategory`, `EducationItem`, `CertificationItem`, `JobItem`, `AIStatusResponse`.
+       - `ResumeProfile`, `ExperienceItem`, `ProjectItem`, `SkillCategory`, `EducationItem`, `CertificationItem`, `ResumeGuideline`, `JobItem`, `AIStatusResponse`.
     5. Create `client/src/services/api.ts` exposing typed API calls:
        - `getResume(): Promise<ResumeProfile>`
        - `updateResume(data: ResumeProfile): Promise<{ profile: ResumeProfile; message: string }>`
@@ -100,6 +102,10 @@ Load these files for context:
        - `resetResumeSeed(): Promise<{ profile: ResumeProfile; message: string }>`
        - `getAIStatus(): Promise<AIStatusResponse>`
        - `selectAIProvider(provider: string): Promise<{ success: boolean; activeProvider: string }>`
+       - `getGuidelines(): Promise<ResumeGuideline[]>`
+       - `createGuideline(rule: string, category?: string): Promise<ResumeGuideline>`
+       - `toggleGuideline(id: string, active: boolean): Promise<ResumeGuideline>`
+       - `deleteGuideline(id: string): Promise<{ success: boolean }>`
        - `getJobs(status?: string): Promise<JobItem[]>`
        - `createJob(job: Partial<JobItem>): Promise<JobItem>`
     6. Implement shell layout:
@@ -109,13 +115,14 @@ Load these files for context:
          3. "Tailor & Review" (`Sparkles` - Phase 3)
          4. "Resume Studio" (`FileText` - Phase 4)
          5. "Settings" (`Settings`)
-       - `Header.tsx`: Title, active route breadcrumb, and dynamic AI provider badge displaying active model (e.g., "Gemini: 2.5 Flash", "Claude: 3.5 Sonnet", "GPT: 4o") with connection status indicator.
+       - `Header.tsx`: Title, active route breadcrumb, and dynamic AI provider badge displaying active model with connection status indicator.
        - `OverviewDashboard.tsx`: Metric cards (Discovered Jobs, Tailored Resumes, Avg ATS Score, Next Scheduled Scrape), "Scrape Now" trigger button, quick link to Master Resume, and recent job feed table.
        - `JobsFeedPanel.tsx`: Targeted keyword search bar (preventing random scrapes), filter pills (Product Manager titles, Location, Remote), split table view with JD preview drawer, and "Tailor Selected Resumes" action bar.
-       - `SettingsPanel.tsx`: 3 tabbed cards:
+       - `SettingsPanel.tsx`: 4 tabbed cards:
          1. LinkedIn Session (cookie status indicator, session link, connection test)
          2. Automation & Limits (schedule interval, max jobs per scrape, headless toggle)
          3. AI Engine (Provider switcher between Gemini, Claude, and GPT with respective API key fields and live latency test)
+         4. Global Resume Guidelines (view confirmed guidelines, toggle active status, add manual rule, delete rule)
        - `App.tsx`: Main layout assembling Sidebar, Header, and active panel routing.
 
     AVOID: Hardcoded static mockups; USE reactive hooks (`useState`, `useEffect`) and typed `api.ts` calls so all metric cards and status badges reflect real SQLite and API states.
@@ -187,7 +194,7 @@ After all tasks complete, verify:
 - [ ] Job Feed includes targeted keyword search bar to prevent random scraping
 - [ ] User can view their master resume profile in the web interface
 - [ ] User can upload an existing PDF/DOCX resume and view extracted fields populated in the editor
-- [ ] Settings panel allows inspecting and switching AI provider (Gemini, Claude, GPT)
+- [ ] Settings panel allows inspecting and switching AI provider (Gemini, Claude, GPT) and managing confirmed global guidelines
 - [ ] User can add, edit, or remove experience bullet points and save changes to SQLite
 - [ ] Saved changes remain when the web page is reloaded
 - [ ] `npm --prefix client run build` passes with zero errors
@@ -195,4 +202,4 @@ After all tasks complete, verify:
 ## Success Criteria
 - [ ] All tasks verified passing
 - [ ] Must-haves confirmed
-- [ ] The web app panel architecture is completely aligned with the 5-section design agreed in grill-me
+- [ ] The web app panel architecture is completely aligned with the 5-section design and confirmed guidelines loop

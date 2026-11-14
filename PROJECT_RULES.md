@@ -21,6 +21,15 @@
 
 ---
 
+## Resume Guidelines Learning Rule (User Explicit Requirement)
+
+**Rule:** Whatever feedback the user provides for resume editing in the admin panel must be converted into reusable general rule guidelines applied across all future resumes.
+- **Mandatory Confirmation**: Every candidate rule MUST be explicitly confirmed by the user before being saved to the global guidelines.
+- **Persistent Storage**: Confirmed rules are saved in the `ResumeGuideline` database table and automatically injected into all future LLM tailoring prompts.
+- **Control**: The user must always be able to view, toggle, edit, or delete these guidelines in Settings.
+
+---
+
 ## Proof Requirements
 
 Every change requires verification evidence:

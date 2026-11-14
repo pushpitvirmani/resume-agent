@@ -92,4 +92,18 @@
 
 ---
 
+### [DECISION-010] Learned Resume Guidelines with Explicit User Confirmation
+**Date**: 2026-11-14  
+**Status**: Accepted  
+- **Context**: The user wants feedback given during resume editing in the admin panel to accumulate into general rule guidelines applied across all future resumes, but requires explicit confirmation before any new rule is added.
+- **Decision**: 
+  1. Create a `ResumeGuideline` model in SQLite storing confirmed rules (e.g. "Always quantify PM metrics with revenue or user growth numbers", "Never use passive voice", "Keep bullets under 2 lines").
+  2. When the user submits feedback in the AI refinement chat, the AI detects if the feedback implies a reusable general rule.
+  3. The UI presents an explicit confirmation prompt: *"Add as a global guideline for all future resumes: '{rule}'? [Confirm] [Dismiss]"*.
+  4. Once confirmed, the rule is saved and automatically injected into all subsequent resume tailoring prompts for any job.
+  5. The Settings panel includes a "Global Resume Guidelines" manager to view, toggle, or delete confirmed rules.
+- **Rationale**: Allows the app to learn and adapt to the user's personal taste over time without accidental or unconfirmed rule creep.
+
+---
+
 *Last updated: 2026-11-14*

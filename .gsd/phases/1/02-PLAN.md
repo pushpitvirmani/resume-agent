@@ -8,6 +8,7 @@ files_modified:
   - server/src/services/ai.ts
   - server/src/routes/ai.ts
   - server/src/routes/resume.ts
+  - server/src/routes/guidelines.ts
   - server/src/routes/jobs.ts
   - server/src/index.ts
   - server/tests/api.test.ts
@@ -30,12 +31,14 @@ must_haves:
     - "GET /api/resume returns the structured master resume profile with parsed arrays for experience and skills"
     - "PUT /api/resume validates payload against schema and updates the database record"
     - "POST /api/resume/upload accepts PDF/DOCX files, parses text, and populates master resume"
+    - "GET, POST, PATCH, DELETE on /api/guidelines manages user-confirmed resume guidelines"
     - "POST /api/jobs and GET /api/jobs create and list job postings"
     - "Automated API tests pass, validating all CRUD endpoints"
   artifacts:
     - "server/src/services/ai.ts"
     - "server/src/routes/ai.ts"
     - "server/src/routes/resume.ts"
+    - "server/src/routes/guidelines.ts"
     - "server/src/routes/jobs.ts"
     - "server/tests/api.test.ts"
 ---
@@ -43,7 +46,7 @@ must_haves:
 # Plan 1.2: Multi-Model AI Engine Client & Master Resume REST APIs
 
 ## Objective
-Implement the Multi-Model AI integration service (supporting Google Gemini as default, alongside Anthropic Claude and OpenAI GPT) with connection health monitoring and model switching, alongside RESTful API endpoints for managing the Master Resume profile (retrieve, update with Zod validation, reset to seed, and PDF/DOCX file upload parser) and baseline Job records. Provide an automated test suite verifying data roundtrip and API behavior.
+Implement the Multi-Model AI integration service (supporting Google Gemini as default, alongside Anthropic Claude and OpenAI GPT) with connection health monitoring and model switching, alongside RESTful API endpoints for managing the Master Resume profile (retrieve, update with Zod validation, reset to seed, and PDF/DOCX file upload parser), the Confirmed Resume Guidelines (`/api/guidelines`), and baseline Job records. Provide an automated test suite verifying data roundtrip and API behavior.
 
 ## Context
 Load these files for context:
@@ -94,23 +97,24 @@ Load these files for context:
 </task>
 
 <task type="auto">
-  <name>Build Master Resume & Jobs REST Endpoints with File Parser & Automated Tests</name>
+  <name>Build Master Resume, Guidelines & Jobs REST Endpoints with File Parser & Tests</name>
   <files>
     server/src/routes/resume.ts
+    server/src/routes/guidelines.ts
     server/src/routes/jobs.ts
     server/src/index.ts
     server/tests/api.test.ts
   </files>
   <action>
-    Implement RESTful endpoints for Master Resume management, PDF/DOCX ingestion, and Jobs baseline, backed by Prisma and validated with Zod:
+    Implement RESTful endpoints for Master Resume management, PDF/DOCX ingestion, Learned Guidelines, and Jobs baseline, backed by Prisma and validated with Zod:
     1. Create `server/src/routes/resume.ts`:
        - `GET /api/resume`:
          - Find the first `MasterResume` record. If none exists, automatically call seed helper and return the seeded profile.
-         - Parse the stringified JSON columns (`experience`, `projects`, `skills`, `education`, `certifications`) into typed JavaScript arrays.
+         - Parse the stringified JSON columns into typed JavaScript arrays.
          - Return 200 with `{ profile: MasterResumeProfile }`.
        - `PUT /api/resume`:
-         - Accept request body, validate using `resumeProfileSchema` from `server/src/types/resume.ts`. Return 400 with validation details if invalid.
-         - Serialize complex fields (`experience`, `projects`, etc.) to JSON strings and upsert into `MasterResume` table.
+         - Accept request body, validate using `resumeProfileSchema` from `server/src/types/resume.ts`.
+         - Serialize complex fields to JSON strings and upsert into `MasterResume` table.
          - Return 200 with `{ profile: updatedProfile, message: "Master resume updated successfully" }`.
        - `POST /api/resume/seed`:
          - Reset or overwrite master resume with the rich default PM profile.
@@ -118,30 +122,35 @@ Load these files for context:
        - `POST /api/resume/upload`:
          - Use `multer` memory storage to accept single file with field name `"resume"` (`.pdf`, `.docx`, `.txt`).
          - Extract raw text using `pdf-parse` (for PDF) or `mammoth` (for DOCX).
-         - Parse extracted text into structured `MasterResumeProfile` JSON (extracting name, contact, summary, work experience bullets, skills, education).
+         - Parse extracted text into structured `MasterResumeProfile` JSON.
          - Upsert into `MasterResume` and return 200 with `{ profile: parsedProfile, message: "Resume parsed and imported successfully" }`.
-    2. Create `server/src/routes/jobs.ts`:
-       - `GET /api/jobs`:
-         - Query all Job records ordered by `createdAt` desc. Support optional query param `?status=discovered`.
-         - Return 200 with `{ jobs: Job[] }`.
-       - `POST /api/jobs`:
-         - Validate `{ title, company, location, url, description }`.
-         - Upsert or create Job in SQLite. Return 201 with created record.
-       - `GET /api/jobs/:id`:
-         - Return job details or 404 if not found.
-       - `DELETE /api/jobs/:id`:
-         - Delete job by id, return 200 with `{ success: true }`.
-    3. Mount `/api/resume` and `/api/jobs` in `server/src/index.ts`.
-    4. Implement `server/tests/api.test.ts`:
+    2. Create `server/src/routes/guidelines.ts`:
+       - `GET /api/guidelines`:
+         - Query all `ResumeGuideline` records ordered by `createdAt` desc.
+         - Return 200 with `{ guidelines: ResumeGuideline[] }`.
+       - `POST /api/guidelines`:
+         - Validate `{ rule, category }`.
+         - Create new `ResumeGuideline` record. Return 201 with `{ guideline, message: "Guideline saved successfully" }`.
+       - `PATCH /api/guidelines/:id`:
+         - Accept `{ active: boolean }` and update status. Return 200 with updated record.
+       - `DELETE /api/guidelines/:id`:
+         - Delete guideline by id. Return 200 with `{ success: true }`.
+    3. Create `server/src/routes/jobs.ts`:
+       - `GET /api/jobs`: Query all Job records ordered by `createdAt` desc.
+       - `POST /api/jobs`: Validate and upsert Job. Return 201.
+       - `GET /api/jobs/:id`: Return job details.
+       - `DELETE /api/jobs/:id`: Delete job by id.
+    4. Mount `/api/resume`, `/api/guidelines`, and `/api/jobs` in `server/src/index.ts`.
+    5. Implement `server/tests/api.test.ts`:
        - Spin up server or invoke route handlers directly to verify:
          1. `GET /api/resume` returns a valid profile with experience bullets.
          2. `PUT /api/resume` updates candidate name and summary, and subsequent `GET /api/resume` returns the updated values.
-         3. `PUT /api/resume` with invalid email/payload returns 400 Bad Request.
+         3. `POST /api/guidelines` creates a guideline, `GET /api/guidelines` lists it, and `PATCH /api/guidelines/:id` toggles it.
          4. `POST /api/jobs` creates a test job posting and `GET /api/jobs` retrieves it.
          5. `GET /api/ai/status` responds with 200.
 
-    AVOID: Returning raw unparsed JSON strings to the client; USE parsed typed objects so the frontend receives ready-to-consume arrays and objects.
-    USE: Explicit Zod schema validation on PUT requests to ensure SQLite never stores corrupted or malformed resume structures.
+    AVOID: Storing unconfirmed rules; USE explicit POST requests only when the user confirms candidate guidelines in the UI.
+    USE: Explicit Zod schema validation on PUT/POST requests.
   </action>
   <verify>
     cd server && npx tsx tests/api.test.ts
@@ -158,6 +167,7 @@ After all tasks complete, verify:
 - [ ] `GET /api/resume` returns the parsed master resume profile
 - [ ] `PUT /api/resume` updates the profile and persists to SQLite
 - [ ] `POST /api/resume/upload` parses uploaded resume file
+- [ ] `GET /api/guidelines` and `POST /api/guidelines` manage confirmed rules
 - [ ] `GET /api/ai/status` returns status without crashing
 - [ ] All automated tests in `server/tests/api.test.ts` pass
 
