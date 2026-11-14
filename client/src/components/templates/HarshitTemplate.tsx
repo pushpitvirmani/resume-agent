@@ -1,0 +1,273 @@
+import React from 'react';
+import { RenderableResume, TemplateStyleOptions } from '../../types';
+
+interface TemplateProps {
+  resume: RenderableResume;
+  options: TemplateStyleOptions;
+}
+
+export function renderFormattedBullet(bulletText: string) {
+  // Regex to match **bold** phrases
+  const parts = bulletText.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <span>
+      {parts.map((part, idx) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <strong key={idx} className="font-bold text-slate-900">
+              {part.slice(2, -2)}
+            </strong>
+          );
+        }
+        return <span key={idx}>{part}</span>;
+      })}
+    </span>
+  );
+}
+
+export const HarshitTemplate: React.FC<TemplateProps> = ({ resume, options }) => {
+  // Typography scaling maps
+  const fontSizeClasses = {
+    compact: {
+      name: 'text-xl tracking-[0.2em]',
+      contact: 'text-[9.5px]',
+      sectionTitle: 'text-[11px] tracking-[0.18em]',
+      roleTitle: 'text-[10.5px]',
+      body: 'text-[10px] leading-[1.38]',
+      bullet: 'text-[10px] leading-[1.38]',
+    },
+    standard: {
+      name: 'text-2xl tracking-[0.25em]',
+      contact: 'text-[10px]',
+      sectionTitle: 'text-[12px] tracking-[0.2em]',
+      roleTitle: 'text-[11.5px]',
+      body: 'text-[10.5px] leading-[1.45]',
+      bullet: 'text-[10.5px] leading-[1.45]',
+    },
+    relaxed: {
+      name: 'text-[26px] tracking-[0.28em]',
+      contact: 'text-[11px]',
+      sectionTitle: 'text-[13px] tracking-[0.22em]',
+      roleTitle: 'text-[12.5px]',
+      body: 'text-[11px] leading-[1.5]',
+      bullet: 'text-[11px] leading-[1.5]',
+    },
+  }[options.fontSize];
+
+  const spacingClasses = {
+    compact: {
+      padding: 'p-7 sm:p-9',
+      sectionGap: 'space-y-3.5',
+      experienceGap: 'space-y-2.5',
+      bulletGap: 'space-y-1',
+    },
+    standard: {
+      padding: 'p-9 sm:p-12',
+      sectionGap: 'space-y-4.5',
+      experienceGap: 'space-y-3',
+      bulletGap: 'space-y-1.5',
+    },
+    roomy: {
+      padding: 'p-10 sm:p-14',
+      sectionGap: 'space-y-5.5',
+      experienceGap: 'space-y-4',
+      bulletGap: 'space-y-2',
+    },
+  }[options.spacing];
+
+  const fontStyle = {
+    fontFamily: options.fontFamily === 'Inter'
+      ? 'Inter, system-ui, sans-serif'
+      : options.fontFamily === 'Garamond'
+      ? 'Garamond, "EB Garamond", Georgia, serif'
+      : options.fontFamily === 'Georgia'
+      ? 'Georgia, serif'
+      : options.fontFamily === 'Calibri'
+      ? 'Calibri, Candara, Segoe, sans-serif'
+      : 'Arial, Helvetica, sans-serif',
+  };
+
+  // Format letter-spaced candidate name
+  const formattedName = resume.name ? resume.name.toUpperCase().split('').join(' ') : 'P U S H P I T   V I R M A N I';
+
+  return (
+    <div
+      id="resume-document-root"
+      style={fontStyle}
+      className={`bg-white text-slate-800 shadow-2xl mx-auto w-full max-w-[816px] min-h-[1056px] ${spacingClasses.padding} selection:bg-indigo-100 font-sans print:shadow-none print:p-0 print:max-w-none`}
+    >
+      {/* 1. Header: Centered Uppercase Letter-Spaced */}
+      <header className="text-center pb-3 border-b border-slate-300">
+        <h1
+          style={{ color: options.accentColor || '#0f172a' }}
+          className={`font-bold uppercase text-slate-900 ${fontSizeClasses.name} mb-1.5`}
+        >
+          {formattedName}
+        </h1>
+
+        <div className={`flex flex-wrap items-center justify-center gap-x-2 text-slate-600 ${fontSizeClasses.contact}`}>
+          {resume.location && <span>{resume.location}</span>}
+          {resume.location && resume.email && <span>•</span>}
+          {resume.email && <span>{resume.email}</span>}
+          {resume.phone && <span>•</span>}
+          {resume.phone && <span>{resume.phone}</span>}
+          {resume.linkedinUrl && <span>•</span>}
+          {resume.linkedinUrl && (
+            <span className="text-slate-700 font-medium">
+              {resume.linkedinUrl.replace(/^https?:\/\/(www\.)?/, '')}
+            </span>
+          )}
+          {resume.portfolioUrl && <span>•</span>}
+          {resume.portfolioUrl && (
+            <span className="text-slate-700 font-medium">
+              {resume.portfolioUrl.replace(/^https?:\/\/(www\.)?/, '')}
+            </span>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content Sections (100% Single-Column Flow) */}
+      <main className={`pt-3.5 ${spacingClasses.sectionGap}`}>
+        {/* 2. Executive Summary */}
+        {resume.summary && (
+          <section>
+            <h2
+              style={{ color: options.accentColor || '#0f172a', borderColor: options.accentColor || '#334155' }}
+              className={`font-bold uppercase pb-0.5 border-b mb-2 ${fontSizeClasses.sectionTitle}`}
+            >
+              S U M M A R Y
+            </h2>
+            <p className={`text-slate-700 text-justify ${fontSizeClasses.body}`}>
+              {resume.summary}
+            </p>
+          </section>
+        )}
+
+        {/* 3. Work Experience */}
+        {resume.experience && resume.experience.length > 0 && (
+          <section>
+            <h2
+              style={{ color: options.accentColor || '#0f172a', borderColor: options.accentColor || '#334155' }}
+              className={`font-bold uppercase pb-0.5 border-b mb-2.5 ${fontSizeClasses.sectionTitle}`}
+            >
+              W O R K   E X P E R I E N C E
+            </h2>
+
+            <div className={spacingClasses.experienceGap}>
+              {resume.experience.map((exp, idx) => (
+                <div key={exp.id || idx} className="space-y-1">
+                  {/* Title & Date Bar */}
+                  <div className="flex items-baseline justify-between">
+                    <div>
+                      <span className={`font-bold text-slate-900 ${fontSizeClasses.roleTitle}`}>
+                        {exp.role}
+                      </span>
+                      <span className="text-slate-500 mx-1.5">•</span>
+                      <span className={`font-medium text-slate-700 ${fontSizeClasses.roleTitle}`}>
+                        {exp.company}
+                      </span>
+                    </div>
+
+                    <div className="text-right text-slate-500 text-[10px] shrink-0 font-medium">
+                      {exp.startDate && <span>{exp.startDate} – {exp.endDate || 'Present'}</span>}
+                      {exp.location && <span className="ml-2 text-slate-400">({exp.location})</span>}
+                    </div>
+                  </div>
+
+                  {/* Bullet Points with Bold Hooks */}
+                  <ul className={`list-disc list-outside ml-4 text-slate-700 ${spacingClasses.bulletGap} ${fontSizeClasses.bullet}`}>
+                    {exp.bullets.map((bullet, bIdx) => (
+                      <li key={bIdx} className="pl-0.5">
+                        {renderFormattedBullet(bullet)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 4. Technical Skills */}
+        {resume.skills && resume.skills.length > 0 && (
+          <section>
+            <h2
+              style={{ color: options.accentColor || '#0f172a', borderColor: options.accentColor || '#334155' }}
+              className={`font-bold uppercase pb-0.5 border-b mb-2 ${fontSizeClasses.sectionTitle}`}
+            >
+              T E C H N I C A L   S K I L L S
+            </h2>
+
+            <div className="space-y-1.5">
+              {resume.skills.map((skillCat, idx) => (
+                <div key={idx} className={`${fontSizeClasses.body} text-slate-700`}>
+                  <strong className="font-semibold text-slate-900 mr-1.5">
+                    {skillCat.category}:
+                  </strong>
+                  <span>{skillCat.skills.join(' • ')}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 5. Education */}
+        {resume.education && resume.education.length > 0 && (
+          <section>
+            <h2
+              style={{ color: options.accentColor || '#0f172a', borderColor: options.accentColor || '#334155' }}
+              className={`font-bold uppercase pb-0.5 border-b mb-2 ${fontSizeClasses.sectionTitle}`}
+            >
+              E D U C A T I O N
+            </h2>
+
+            <div className="space-y-1.5">
+              {resume.education.map((edu, idx) => (
+                <div key={edu.id || idx} className="flex items-baseline justify-between">
+                  <div className={fontSizeClasses.body}>
+                    <strong className="font-bold text-slate-900">
+                      {edu.degree} in {edu.fieldOfStudy}
+                    </strong>
+                    <span className="text-slate-500 mx-1.5">•</span>
+                    <span className="text-slate-700">{edu.institution}</span>
+                    {edu.honors && (
+                      <span className="text-slate-500 italic ml-1.5">({edu.honors})</span>
+                    )}
+                  </div>
+                  <div className="text-[10.5px] text-slate-500 font-medium">
+                    {edu.graduationYear}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 6. Certifications (if present) */}
+        {resume.certifications && resume.certifications.length > 0 && (
+          <section>
+            <h2
+              style={{ color: options.accentColor || '#0f172a', borderColor: options.accentColor || '#334155' }}
+              className={`font-bold uppercase pb-0.5 border-b mb-2 ${fontSizeClasses.sectionTitle}`}
+            >
+              C E R T I F I C A T I O N S
+            </h2>
+
+            <div className="space-y-1">
+              {resume.certifications.map((cert, idx) => (
+                <div key={cert.id || idx} className={`flex items-baseline justify-between ${fontSizeClasses.body}`}>
+                  <div>
+                    <strong className="font-semibold text-slate-900">{cert.name}</strong>
+                    <span className="text-slate-500 mx-1.5">•</span>
+                    <span className="text-slate-700">{cert.issuer}</span>
+                  </div>
+                  {cert.year && <span className="text-[10px] text-slate-500">{cert.year}</span>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+};

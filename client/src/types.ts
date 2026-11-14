@@ -163,3 +163,57 @@ export interface TailoredResumeItem {
   createdAt: string;
   updatedAt: string;
 }
+
+export type TemplateId = 'harshit' | 'minimalist' | 'executive';
+
+export interface TemplateStyleOptions {
+  fontFamily: 'Inter' | 'Arial' | 'Calibri' | 'Georgia' | 'Garamond';
+  fontSize: 'compact' | 'standard' | 'relaxed';
+  spacing: 'compact' | 'standard' | 'roomy';
+  accentColor: string;
+}
+
+export interface RenderableResume {
+  name: string;
+  email: string;
+  phone?: string | null;
+  location?: string | null;
+  linkedinUrl?: string | null;
+  portfolioUrl?: string | null;
+  summary: string;
+  experience: Array<{
+    id?: string;
+    company: string;
+    role: string;
+    location: string;
+    startDate?: string;
+    endDate?: string;
+    bullets: string[];
+  }>;
+  projects?: Array<{
+    id?: string;
+    title: string;
+    role: string;
+    tools: string[];
+    link?: string;
+    bullets: string[];
+  }>;
+  skills: Array<{
+    category: string;
+    skills: string[];
+  }>;
+  education: Array<{
+    id?: string;
+    institution: string;
+    degree: string;
+    fieldOfStudy: string;
+    graduationYear: string;
+    honors?: string;
+  }>;
+  certifications?: Array<{
+    id?: string;
+    name: string;
+    issuer: string;
+    year?: string;
+  }>;
+}
