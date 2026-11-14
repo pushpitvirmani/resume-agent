@@ -22,7 +22,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     { id: 'jobs' as NavTab, label: 'LinkedIn Jobs', icon: Briefcase },
     { id: 'resume' as NavTab, label: 'Master Resume', icon: FileEdit },
     { id: 'tailor' as NavTab, label: 'Tailor & Review', icon: Sparkles, badge: 'AI Diff' },
-    { id: 'templates' as NavTab, label: 'Resume Studio', icon: Layers, badge: 'Phase 4' },
+    { id: 'templates' as NavTab, label: 'Resume Studio', icon: Layers, badge: 'ATS Preview' },
     { id: 'settings' as NavTab, label: 'Settings', icon: Settings },
   ];
 

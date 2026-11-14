@@ -6,6 +6,7 @@ import { JobsFeedPanel } from './components/JobsFeedPanel';
 import { MasterResumeEditor } from './components/MasterResumeEditor';
 import { SettingsPanel } from './components/SettingsPanel';
 import { TailorStudio } from './components/TailorStudio';
+import { ResumeStudio } from './components/ResumeStudio';
 import { Sparkles, Layers, ArrowRight } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -59,21 +60,7 @@ export const App: React.FC = () => {
           )}
 
           {activeTab === 'templates' && (
-            <div className="max-w-4xl mx-auto p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4 my-12">
-              <div className="w-12 h-12 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center mx-auto text-purple-400">
-                <Layers className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-slate-100">Resume Builder & Template Studio (Phase 4)</h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                The dual-pane studio featuring the <strong>Harshit Kumar FAANG/AI startup ATS template</strong> with live vector preview and instant PDF/DOCX export is scheduled for <strong>Phase 4</strong>.
-              </p>
-              <button
-                onClick={() => setActiveTab('overview')}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700"
-              >
-                <span>Return to Overview</span>
-              </button>
-            </div>
+            <ResumeStudio />
           )}
 
           {activeTab === 'settings' && (
