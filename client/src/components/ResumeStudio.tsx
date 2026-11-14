@@ -303,6 +303,7 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
       fontSize: 'compact',
       spacing: 'compact',
     }));
+    setHasUnsavedChanges(true);
   };
 
   // Ultra-compact action if still overflowing
@@ -313,6 +314,7 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
       spacing: 'compact',
     }));
     setTemplateId('compact');
+    setHasUnsavedChanges(true);
   };
 
   // Save bullet changes made in modal back to master resume or current tailored (In-memory visual update only)
@@ -470,24 +472,20 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
           {/* SAVE CHANGES CTA: Only persists to database on click */}
           <button
             onClick={handlePersistStudioChanges}
-            disabled={savingStudio || !hasUnsavedChanges}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-md transition-all ${
+            disabled={savingStudio}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-md transition-all cursor-pointer ${
               hasUnsavedChanges
-                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 ring-2 ring-emerald-400/50 cursor-pointer animate-pulse'
-                : 'bg-slate-800/60 text-slate-400 border border-slate-700/60 opacity-60 cursor-not-allowed'
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 ring-2 ring-emerald-400/50 animate-pulse'
+                : 'bg-emerald-700/80 hover:bg-emerald-600 text-white border border-emerald-500/40 shadow-sm'
             }`}
-            title={
-              hasUnsavedChanges
-                ? 'Click to persist visual changes to the database'
-                : 'All changes saved'
-            }
+            title="Persist changes to database"
           >
             {savingStudio ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <Save className="w-3.5 h-3.5" />
             )}
-            <span>{savingStudio ? 'Saving...' : hasUnsavedChanges ? 'Save Changes' : 'Saved'}</span>
+            <span>{savingStudio ? 'Saving...' : hasUnsavedChanges ? 'Save Changes *' : 'Save Changes'}</span>
           </button>
 
           {/* Download PDF (.pdf) Button */}
@@ -543,7 +541,10 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
             return (
               <button
                 key={tpl.id}
-                onClick={() => setTemplateId(tpl.id)}
+                onClick={() => {
+                  setTemplateId(tpl.id);
+                  setHasUnsavedChanges(true);
+                }}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                   isSelected
                     ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-sm shadow-indigo-500/20'
@@ -684,7 +685,10 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
               ].map((f) => (
                 <button
                   key={f.value}
-                  onClick={() => setOptions({ ...options, fontFamily: f.value })}
+                  onClick={() => {
+                    setOptions({ ...options, fontFamily: f.value });
+                    setHasUnsavedChanges(true);
+                  }}
                   className={`px-2.5 py-1.5 text-xs rounded-lg border text-left transition-all ${
                     options.fontFamily === f.value
                       ? 'bg-indigo-600/30 border-indigo-500 text-white font-semibold'
@@ -711,7 +715,10 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
               ].map((s) => (
                 <button
                   key={s.id}
-                  onClick={() => setOptions({ ...options, fontSize: s.id as any })}
+                  onClick={() => {
+                    setOptions({ ...options, fontSize: s.id as any });
+                    setHasUnsavedChanges(true);
+                  }}
                   className={`px-2 py-1.5 text-[11px] rounded-lg border text-center transition-all ${
                     options.fontSize === s.id
                       ? 'bg-indigo-600/30 border-indigo-500 text-white font-semibold'
@@ -741,7 +748,10 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
               ].map((sp) => (
                 <button
                   key={sp.id}
-                  onClick={() => setOptions({ ...options, spacing: sp.id as any })}
+                  onClick={() => {
+                    setOptions({ ...options, spacing: sp.id as any });
+                    setHasUnsavedChanges(true);
+                  }}
                   className={`px-2 py-1.5 text-[11px] rounded-lg border text-center transition-all ${
                     options.spacing === sp.id
                       ? 'bg-indigo-600/30 border-indigo-500 text-white font-semibold'
@@ -773,7 +783,10 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
               ].map((c) => (
                 <button
                   key={c.color}
-                  onClick={() => setOptions({ ...options, accentColor: c.color })}
+                  onClick={() => {
+                    setOptions({ ...options, accentColor: c.color });
+                    setHasUnsavedChanges(true);
+                  }}
                   style={{ backgroundColor: c.color }}
                   title={c.name}
                   className={`w-6 h-6 rounded-full border-2 transition-transform ${
@@ -786,7 +799,10 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
               <input
                 type="color"
                 value={options.accentColor}
-                onChange={(e) => setOptions({ ...options, accentColor: e.target.value })}
+                onChange={(e) => {
+                  setOptions({ ...options, accentColor: e.target.value });
+                  setHasUnsavedChanges(true);
+                }}
                 className="w-6 h-6 rounded-full border border-slate-700 cursor-pointer bg-transparent"
                 title="Custom Color"
               />
