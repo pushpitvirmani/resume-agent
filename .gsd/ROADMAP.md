@@ -16,7 +16,7 @@
 ## Phases
 
 ### Phase 1: Core Foundation & Master Resume Management
-**Status**: ⬜ Not Started  
+**Status**: ✅ Complete  
 **Objective**: Set up application scaffold (backend API + frontend dashboard), local data persistence for master resume and jobs, and Gemini API client integration.  
 **Requirements**: REQ-03  
 
