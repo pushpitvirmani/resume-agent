@@ -203,11 +203,11 @@ export const api = {
   },
 
   // AI Tailoring
-  async tailorResume(jobId: string, masterResumeId?: string): Promise<{ ok: boolean; tailoredResume: import('../types').TailoredResumeItem }> {
+  async tailorResume(jobId: string, masterResumeId?: string, model?: string): Promise<{ ok: boolean; tailoredResume: import('../types').TailoredResumeItem }> {
     const res = await fetch('/api/tailor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId, masterResumeId })
+      body: JSON.stringify({ jobId, masterResumeId, model })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -229,11 +229,11 @@ export const api = {
     return res.json();
   },
 
-  async updateTailoredResume(id: string, content: import('../types').TailoredContent): Promise<{ ok: boolean; tailoredResume: import('../types').TailoredResumeItem }> {
+  async updateTailoredResume(id: string, content: import('../types').TailoredContent, atsScore?: number): Promise<{ ok: boolean; tailoredResume: import('../types').TailoredResumeItem }> {
     const res = await fetch(`/api/tailor/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content })
+      body: JSON.stringify({ content, atsScore })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -246,7 +246,8 @@ export const api = {
     id: string,
     feedback: string,
     section?: string,
-    bulletIndex?: number
+    bulletIndex?: number,
+    model?: string
   ): Promise<{
     ok: boolean;
     tailoredResume: import('../types').TailoredResumeItem;
@@ -255,7 +256,7 @@ export const api = {
     const res = await fetch(`/api/tailor/${id}/refine`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ feedback, section, bulletIndex })
+      body: JSON.stringify({ feedback, section, bulletIndex, model })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

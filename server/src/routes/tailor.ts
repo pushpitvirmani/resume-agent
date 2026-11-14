@@ -13,12 +13,14 @@ const router = Router();
 const GenerateTailorSchema = z.object({
   jobId: z.string().min(1, 'jobId is required'),
   masterResumeId: z.string().optional(),
+  model: z.string().optional(),
 });
 
 const RefineTailorSchema = z.object({
   feedback: z.string().min(2, 'Feedback must be at least 2 characters'),
   section: z.string().optional(),
   bulletIndex: z.number().int().optional(),
+  model: z.string().optional(),
 });
 
 // POST /api/tailor - Generate tailored resume
@@ -69,12 +71,12 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { content } = req.body;
+    const { content, atsScore } = req.body;
     if (!content) {
       return res.status(400).json({ ok: false, error: 'content is required' });
     }
 
-    const updated = await updateTailoredResumeContent(id, content);
+    const updated = await updateTailoredResumeContent(id, content, atsScore);
     res.json({ ok: true, tailoredResume: updated });
   } catch (error: any) {
     res.status(500).json({ ok: false, error: error.message || 'Failed to update tailored resume' });
@@ -95,6 +97,7 @@ router.post('/:id/refine', async (req, res) => {
       feedback: parse.data.feedback,
       section: parse.data.section,
       bulletIndex: parse.data.bulletIndex,
+      model: parse.data.model,
     });
 
     res.json({

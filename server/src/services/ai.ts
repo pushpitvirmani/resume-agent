@@ -98,7 +98,7 @@ export async function generateText(
   prompt: string,
   systemInstruction?: string,
   providerOverride?: AIProvider,
-  options?: { jsonMode?: boolean }
+  options?: { jsonMode?: boolean; model?: string }
 ): Promise<string> {
   const provider = providerOverride || activeProvider;
 
@@ -135,11 +135,16 @@ export async function generateText(
       return text;
     };
 
+    const targetModel = options?.model || 'gemini-3.1-flash-lite';
     try {
-      return await tryGenerate('gemini-3.1-flash-lite');
+      return await tryGenerate(targetModel);
     } catch (err: any) {
-      console.warn(`[AI Service] gemini-3.1-flash-lite error (${err.message}), trying gemini-3.5-flash-lite fallback...`);
-      return await tryGenerate('gemini-3.5-flash-lite');
+      if (targetModel !== 'gemini-3.1-flash-lite') {
+        console.warn(`[AI Service] ${targetModel} error (${err.message}), trying gemini-3.1-flash-lite fallback...`);
+        return await tryGenerate('gemini-3.1-flash-lite');
+      }
+      console.warn(`[AI Service] gemini-3.1-flash-lite error (${err.message}), trying gemini-2.5-flash fallback...`);
+      return await tryGenerate('gemini-2.5-flash');
     }
   }
 

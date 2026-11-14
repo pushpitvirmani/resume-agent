@@ -15,16 +15,18 @@ import {
   Play,
   CheckCircle2,
   AlertCircle,
-  Download
+  Download,
+  Layers
 } from 'lucide-react';
 import { api } from '../services/api';
 import { JobItem, ScraperStatus } from '../types';
 
 interface JobsFeedPanelProps {
   onTailorJobs?: (jobIds: string[]) => void;
+  onOpenInResumeBuilder?: (jobId: string) => void;
 }
 
-export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs }) => {
+export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs, onOpenInResumeBuilder }) => {
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
@@ -328,6 +330,15 @@ export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs }) =>
                 </div>
 
                 <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => onOpenInResumeBuilder?.(activeJob.id)}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow flex items-center space-x-1.5 transition-all"
+                    title="Open Resume Builder pre-selected with this job's tailored resume"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Update in Resume Builder</span>
+                  </button>
+
                   <a
                     href={activeJob.url}
                     target="_blank"

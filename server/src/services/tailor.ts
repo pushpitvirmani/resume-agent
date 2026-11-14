@@ -58,8 +58,9 @@ function parseJSONSafely(text: string): any {
 export async function generateTailoredResume(options: {
   jobId: string;
   masterResumeId?: string;
+  model?: string;
 }): Promise<any> {
-  const { jobId, masterResumeId } = options;
+  const { jobId, masterResumeId, model } = options;
 
   const job = await prisma.job.findUnique({ where: { id: jobId } });
   if (!job) throw new Error(`Job not found with ID: ${jobId}`);
@@ -156,7 +157,7 @@ ${JSON.stringify(parsedMaster.skills, null, 2)}
 
 Please tailor this resume for the target JD. Output strictly JSON.`;
 
-  const aiResponseText = await generateText(userPrompt, systemInstruction, undefined, { jsonMode: true });
+  const aiResponseText = await generateText(userPrompt, systemInstruction, undefined, { jsonMode: true, model });
   const tailoredContent: TailoredContent = parseJSONSafely(aiResponseText);
 
   // Validate and persist
@@ -217,11 +218,12 @@ export async function refineTailoredResume(options: {
   feedback: string;
   section?: string;
   bulletIndex?: number;
+  model?: string;
 }): Promise<{
   tailoredResume: any;
   suggestedGuideline?: SuggestedGuideline | null;
 }> {
-  const { tailoredResumeId, feedback, section, bulletIndex } = options;
+  const { tailoredResumeId, feedback, section, bulletIndex, model } = options;
 
   const tailoredRecord = await prisma.tailoredResume.findUnique({
     where: { id: tailoredResumeId },
@@ -268,7 +270,7 @@ ${bulletIndex !== undefined ? `Target Bullet Index: ${bulletIndex}` : ''}
 
 Update the resume and evaluate if a general rule should be suggested. Output strictly JSON.`;
 
-  const responseText = await generateText(prompt, systemInstruction, undefined, { jsonMode: true });
+  const responseText = await generateText(prompt, systemInstruction, undefined, { jsonMode: true, model });
   const parsedResponse = parseJSONSafely(responseText);
 
   const updatedContent = parsedResponse.updatedContent || currentContent;
@@ -341,12 +343,13 @@ export async function getTailoredResumeByJobId(jobId: string): Promise<any> {
 /**
  * Save direct in-place edits to tailored resume
  */
-export async function updateTailoredResumeContent(id: string, content: TailoredContent): Promise<any> {
+export async function updateTailoredResumeContent(id: string, content: TailoredContent, atsScore?: number): Promise<any> {
+  const score = atsScore !== undefined ? atsScore : content.atsAnalysis?.score;
   const record = await prisma.tailoredResume.update({
     where: { id },
     data: {
       content: JSON.stringify(content),
-      atsScore: content.atsAnalysis?.score,
+      atsScore: score,
       updatedAt: new Date(),
     },
   });

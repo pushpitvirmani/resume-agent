@@ -43,7 +43,11 @@ import { RichBulletEditor } from './RichBulletEditor';
 // Standard 1-page Letter height at 96 DPI: 11in * 96px = 1056px
 const PAGE_MAX_HEIGHT_PX = 1056;
 
-export const ResumeStudio: React.FC = () => {
+interface ResumeStudioProps {
+  preselectedJobId?: string | null;
+}
+
+export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) => {
   // Profiles state
   const [profiles, setProfiles] = useState<ProfileItem[]>([]);
   const [activeProfileId, setActiveProfileId] = useState<string>('default');
@@ -137,6 +141,17 @@ export const ResumeStudio: React.FC = () => {
       fetchResumeData();
     }
   }, [activeProfileId]);
+
+  useEffect(() => {
+    if (preselectedJobId) {
+      setSelectedSource(preselectedJobId);
+      api.getTailoredResumeByJob(preselectedJobId).then((res) => {
+        if (res.ok && res.tailoredResume) {
+          setCurrentTailored(res.tailoredResume);
+        }
+      }).catch(console.error);
+    }
+  }, [preselectedJobId]);
 
   // Handle source switch (master vs tailored job resume)
   const handleSourceChange = async (val: string) => {

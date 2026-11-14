@@ -11,6 +11,7 @@ import { Sparkles, Layers, ArrowRight } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('overview');
+  const [preselectedJobId, setPreselectedJobId] = useState<string | null>(null);
 
   const getHeaderInfo = () => {
     switch (activeTab) {
@@ -48,7 +49,13 @@ export const App: React.FC = () => {
           )}
 
           {activeTab === 'jobs' && (
-            <JobsFeedPanel onTailorJobs={() => setActiveTab('tailor')} />
+            <JobsFeedPanel
+              onTailorJobs={() => setActiveTab('tailor')}
+              onOpenInResumeBuilder={(jobId) => {
+                setPreselectedJobId(jobId);
+                setActiveTab('templates');
+              }}
+            />
           )}
 
           {activeTab === 'resume' && (
@@ -60,7 +67,7 @@ export const App: React.FC = () => {
           )}
 
           {activeTab === 'templates' && (
-            <ResumeStudio />
+            <ResumeStudio preselectedJobId={preselectedJobId} />
           )}
 
           {activeTab === 'settings' && (
