@@ -7,10 +7,10 @@
 - [x] Headless scheduled LinkedIn scraper for Product Management roles
 - [x] Job management dashboard with schedule triggers and posting selection
 - [x] Master resume profile schema and storage
-- [ ] Gemini API-driven JD analysis, keyword extraction, and bullet customization
-- [ ] Side-by-side diff viewer with interactive feedback widget for iterative tweaks
+- [x] Gemini API-driven JD analysis, keyword extraction, and bullet customization
+- [x] Side-by-side diff viewer with interactive feedback widget for iterative tweaks
 - [ ] FAANG/AI startup ATS-optimized resume template library
-- [ ] ATS score evaluation breakdown
+- [x] ATS score evaluation breakdown
 - [ ] Dual-format export engine (.pdf and .docx)
 
 ## Phases
@@ -26,7 +26,7 @@
 **Requirements**: REQ-01, REQ-02  
 
 ### Phase 3: Gemini AI Resume Tailoring, Diff Viewer & Interactive Feedback
-**Status**: ⬜ Not Started  
+**Status**: ✅ Complete  
 **Objective**: Implement JD extraction, Gemini-powered bullet/summary tailoring, visual side-by-side diff UI, and an interactive feedback widget for on-the-fly revisions.  
 **Requirements**: REQ-04, REQ-05, REQ-06  
 
