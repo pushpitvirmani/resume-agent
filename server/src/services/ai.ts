@@ -45,7 +45,7 @@ export async function checkAIStatus(): Promise<AIStatusReport> {
     providers: {
       gemini: {
         configured: Boolean(geminiKey),
-        model: 'gemini-flash-latest',
+        model: 'gemini-3.1-flash-lite',
         connected: false,
         message: geminiKey ? 'API Key configured' : 'GEMINI_API_KEY not configured in .env'
       },
@@ -97,29 +97,49 @@ export async function checkAIStatus(): Promise<AIStatusReport> {
 export async function generateText(
   prompt: string,
   systemInstruction?: string,
-  providerOverride?: AIProvider
+  providerOverride?: AIProvider,
+  options?: { jsonMode?: boolean }
 ): Promise<string> {
   const provider = providerOverride || activeProvider;
 
   if (provider === 'gemini') {
     const key = process.env.GEMINI_API_KEY?.trim();
     if (!key) throw new Error('GEMINI_API_KEY is not configured');
-    const genAI = new GoogleGenerativeAI(key);
-    // Use gemini-flash-latest with fallback
+
+    const tryGenerate = async (modelName: string): Promise<string> => {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+      const payload: any = {
+        contents: [{ parts: [{ text: prompt }] }],
+      };
+      if (systemInstruction) {
+        payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+      }
+      if (options?.jsonMode) {
+        payload.generationConfig = { responseMimeType: 'application/json' };
+      }
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error((errorData as any)?.error?.message || `Gemini API returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error('Empty response from Gemini API');
+      return text;
+    };
+
     try {
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-flash-latest',
-        systemInstruction: systemInstruction ? { role: 'system', parts: [{ text: systemInstruction }] } : undefined
-      });
-      const result = await model.generateContent(prompt);
-      return result.response.text();
+      return await tryGenerate('gemini-3.1-flash-lite');
     } catch (err: any) {
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-3.8-flash',
-        systemInstruction: systemInstruction ? { role: 'system', parts: [{ text: systemInstruction }] } : undefined
-      });
-      const result = await model.generateContent(prompt);
-      return result.response.text();
+      console.warn(`[AI Service] gemini-3.1-flash-lite error (${err.message}), trying gemini-3.5-flash-lite fallback...`);
+      return await tryGenerate('gemini-3.5-flash-lite');
     }
   }
 
@@ -145,6 +165,7 @@ export async function generateText(
     const openai = new OpenAI({ apiKey: key });
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
+      response_format: options?.jsonMode ? { type: 'json_object' } : undefined,
       messages: [
         ...(systemInstruction ? [{ role: 'system' as const, content: systemInstruction }] : []),
         { role: 'user' as const, content: prompt }
