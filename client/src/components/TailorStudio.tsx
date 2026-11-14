@@ -14,7 +14,8 @@ import {
   ExternalLink,
   ChevronDown,
   Check,
-  Edit3
+  Edit3,
+  Download
 } from 'lucide-react';
 import { api } from '../services/api';
 import { JobItem, TailoredResumeItem, TailoredContent, SuggestedGuideline } from '../types';
@@ -32,6 +33,19 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
   const [tailoring, setTailoring] = useState<boolean>(false);
   const [refining, setRefining] = useState<boolean>(false);
   const [savingEdit, setSavingEdit] = useState<boolean>(false);
+  const [exportingDocx, setExportingDocx] = useState<boolean>(false);
+
+  const handleExportDocx = async () => {
+    if (!selectedJobId) return;
+    try {
+      setExportingDocx(true);
+      await api.exportDocx({ jobId: selectedJobId });
+    } catch (err: any) {
+      alert(`Export failed: ${err.message || 'Error generating DOCX'}`);
+    } finally {
+      setExportingDocx(false);
+    }
+  };
 
   // Revision chat state
   const [feedbackPrompt, setFeedbackPrompt] = useState<string>('');
@@ -260,14 +274,30 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
           </button>
 
           {tailoredResume && (
-            <button
-              onClick={handleSaveInPlaceEdits}
-              disabled={savingEdit}
-              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>{savingEdit ? 'Saving...' : 'Save Edits'}</span>
-            </button>
+            <>
+              <button
+                onClick={handleSaveInPlaceEdits}
+                disabled={savingEdit}
+                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>{savingEdit ? 'Saving...' : 'Save Edits'}</span>
+              </button>
+
+              <button
+                onClick={handleExportDocx}
+                disabled={exportingDocx}
+                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                title="Download tailored Word document (.docx)"
+              >
+                {exportingDocx ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-indigo-400" />
+                )}
+                <span>{exportingDocx ? 'Exporting...' : 'Download .docx'}</span>
+              </button>
+            </>
           )}
         </div>
       </div>

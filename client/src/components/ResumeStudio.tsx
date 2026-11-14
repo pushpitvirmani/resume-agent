@@ -55,6 +55,23 @@ export const ResumeStudio: React.FC = () => {
   const [selectedSource, setSelectedSource] = useState<'master' | string>('master');
   const [currentTailored, setCurrentTailored] = useState<TailoredResumeItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportingDocx, setExportingDocx] = useState(false);
+
+  const handleExportDocx = async () => {
+    if (!renderable) return;
+    try {
+      setExportingDocx(true);
+      if (selectedSource !== 'master') {
+        await api.exportDocx({ jobId: selectedSource, profileId: activeProfileId });
+      } else {
+        await api.exportDocx({ resumeData: renderable, profileId: activeProfileId });
+      }
+    } catch (err: any) {
+      alert(`Export failed: ${err.message || 'Error generating DOCX'}`);
+    } finally {
+      setExportingDocx(false);
+    }
+  };
 
   // Template customizer state
   const [templateId, setTemplateId] = useState<TemplateId>('harshit');
@@ -389,7 +406,22 @@ export const ResumeStudio: React.FC = () => {
             <span>Format & Bold Words</span>
           </button>
 
-          {/* Print / Export Button */}
+          {/* Download Word (.docx) Button */}
+          <button
+            onClick={handleExportDocx}
+            disabled={exportingDocx}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-all shadow-sm disabled:opacity-50"
+            title="Download ATS-compliant Word document (.docx)"
+          >
+            {exportingDocx ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+            ) : (
+              <Download className="w-3.5 h-3.5 text-indigo-400" />
+            )}
+            <span>{exportingDocx ? 'Generating...' : 'Word (.docx)'}</span>
+          </button>
+
+          {/* Print / Export PDF Button */}
           <button
             onClick={() => window.print()}
             className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all active:scale-95"

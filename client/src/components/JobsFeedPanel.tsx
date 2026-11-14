@@ -14,7 +14,8 @@ import {
   Loader2,
   Play,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Download
 } from 'lucide-react';
 import { api } from '../services/api';
 import { JobItem, ScraperStatus } from '../types';
@@ -27,7 +28,20 @@ export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs }) =>
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
+  const [batchExporting, setBatchExporting] = useState<boolean>(false);
   const [activeJob, setActiveJob] = useState<JobItem | null>(null);
+
+  const handleBatchExportDocx = async () => {
+    if (selectedJobIds.length === 0) return;
+    try {
+      setBatchExporting(true);
+      await api.exportBatch(selectedJobIds, 'docx');
+    } catch (err: any) {
+      alert(`Batch export failed: ${err.message || 'Error creating ZIP'}`);
+    } finally {
+      setBatchExporting(false);
+    }
+  };
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [scraperStatus, setScraperStatus] = useState<ScraperStatus | null>(null);
@@ -458,6 +472,49 @@ export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs }) =>
               </div>
             </form>
           </div>
+        </div>
+      )}
+      {/* Floating Batch Action Bar */}
+      {selectedJobIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 bg-slate-900 border border-indigo-500/50 rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-4 text-xs animate-in slide-in-from-bottom-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+            <span className="font-semibold text-white">
+              {selectedJobIds.length} {selectedJobIds.length === 1 ? 'Job' : 'Jobs'} Selected
+            </span>
+          </div>
+
+          <div className="h-4 w-px bg-slate-700" />
+
+          {onTailorJobs && (
+            <button
+              onClick={() => onTailorJobs(selectedJobIds)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Tailor with AI</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleBatchExportDocx}
+            disabled={batchExporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition-colors disabled:opacity-50"
+          >
+            {batchExporting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+            ) : (
+              <Download className="w-3.5 h-3.5 text-indigo-400" />
+            )}
+            <span>{batchExporting ? 'Packaging ZIP...' : 'Export Batch (.zip)'}</span>
+          </button>
+
+          <button
+            onClick={() => setSelectedJobIds([])}
+            className="text-slate-400 hover:text-white px-2 py-1 font-medium"
+          >
+            Clear
+          </button>
         </div>
       )}
     </div>
