@@ -1,7 +1,7 @@
 # ROADMAP.md
 
-> **Current Phase**: Not started  
-> **Milestone**: v1.0 (MVP)
+> **Current Phase**: 5 Complete  
+> **Milestone**: v1.0 (MVP) — COMPLETE
 
 ## Must-Haves (from SPEC)
 - [x] Headless scheduled LinkedIn scraper for Product Management roles
@@ -9,9 +9,11 @@
 - [x] Master resume profile schema and storage
 - [x] Gemini API-driven JD analysis, keyword extraction, and bullet customization
 - [x] Side-by-side diff viewer with interactive feedback widget for iterative tweaks
-- [x] FAANG/AI startup ATS-optimized resume template library
+- [x] FAANG/AI startup ATS-optimized resume template library (10 top-company templates)
 - [x] ATS score evaluation breakdown
-- [ ] Dual-format export engine (.pdf and .docx)
+- [x] Dual-format export engine (.pdf and .docx)
+- [x] Multi-profile isolation with Pushpit Virmani default baseline
+- [x] Word-level bolding and 1-page auto-fit diagnostics
 
 ## Phases
 
@@ -32,10 +34,10 @@
 
 ### Phase 4: ATS Template Studio & Resume Builder
 **Status**: ✅ Complete  
-**Objective**: Build the standalone resume builder studio with a curated library of FAANG/AI startup ATS templates, live template preview, and ATS keyword/score analyzer.  
+**Objective**: Build the standalone resume builder studio with a curated library of 10 FAANG/AI startup ATS templates, word-level formatting, 1-page auto-fit, multi-profile isolation, and ATS keyword/score analyzer.  
 **Requirements**: REQ-07, REQ-08  
 
 ### Phase 5: Export Engine (PDF & DOCX) & Batch Workflow Integration
-**Status**: ⬜ Not Started  
+**Status**: ✅ Complete  
 **Objective**: Implement production-grade PDF and DOCX document generators matching ATS standards, and integrate the full end-to-end flow from job selection to downloaded files.  
 **Requirements**: REQ-09, REQ-10  

@@ -1,43 +1,32 @@
 ---
-updated: 2026-11-14T20:45:00+05:30
+updated: 2026-11-14T20:47:30+05:30
 ---
 
 # Project State
 
 ## Current Position
 
-**Milestone:** v1.0 (MVP)  
-**Phase:** 5 - Export Engine (PDF & DOCX) & Batch Workflow Integration  
-**Next Phase:** Complete / Final Verification  
-**Status:** ready_for_execution  
-**Plan:** .gsd/phases/05-export-engine/05-01-PLAN.md, .gsd/phases/05-export-engine/05-02-PLAN.md  
+**Milestone:** v1.0 (MVP) — COMPLETE  
+**Phase:** 5 - Export Engine (PDF & DOCX) & Batch Workflow Integration (COMPLETE)  
+**Status:** complete  
+**Plan:** All phases executed and verified.  
 
 ## Last Action
 
-Decomposed Phase 5 into 2 atomic plans with full requirement coverage:
-1. `05-01-PLAN.md` (Wave 1): DOCX Generator Engine & Backend Export API
-   - `docx` & `archiver` dependency installation
-   - Single-column ATS Word generator (`server/src/services/docxGenerator.ts`) with word-level bolding parser (`**bold**` -> bold `TextRun`)
-   - Export REST endpoints (`POST /api/export/docx`, `POST /api/export/batch`)
-   - Automated test suite (`server/tests/export.test.ts`)
-2. `05-02-PLAN.md` (Wave 2): Client PDF Generator & Download Actions in Studio & Jobs Feed
-   - Production `@media print` rules in `client/src/index.css` for 8.5in x 11in Letter page sizing without application chrome
-   - Client export utility (`client/src/services/exportService.ts`) for instant blob downloads
-   - Dual-format ("Download DOCX" / "Export PDF") download controls in `ResumeStudio.tsx` and `TailorStudio.tsx`
-   - `BatchExportModal.tsx` wired into `JobsFeedPanel.tsx` for multi-job batch zip packaging
+Executed Phase 5:
+- 01-PLAN: Built production-grade DOCX generator service (`server/src/services/docxExport.ts`) using `docx` matching ATS specifications (0.5in margins, single-column, tracked uppercase headers, right-aligned tab stops for dates, bold hooks in bullets). Created `server/src/routes/export.ts` with `/docx` and `/batch` ZIP endpoints. Verified via `server/tests/export.test.ts` (`4203706`).
+- 02-PLAN: Integrated client export service in `client/src/services/api.ts`, added Word (.docx) & PDF buttons in `ResumeStudio.tsx` and `TailorStudio.tsx`, and built floating batch multi-selection export action bar in `JobsFeedPanel.tsx` (`4203706`).
+- Full client build passed cleanly (`tsc && vite build` in 3.38s).
+- All server unit and integration tests passed cleanly.
 
-## Active Decisions
+## Milestone Status
 
-| Decision | Choice | Made | Affects |
-|----------|--------|------|---------|
-| AI Engine | Multi-model: Gemini 3.1 Flash-Lite (connected), Claude, GPT | 2026-11-14 | All AI services |
-| Multi-Profile | 100% profile isolation for MasterResume and ResumeGuideline; Pushpit as default | 2026-11-14 | Master Resume & Studio |
-| ATS Templates | 10 top-company curated ATS templates with company-specific typography & accents | 2026-11-14 | Resume Studio |
-| 1-Page Boundary | 1056px cutoff boundary with live height calculation and auto-compact suggestions | 2026-11-14 | Resume Studio |
-| Bullet Bolding | Markdown-compatible `**word**` bolding with keyboard shortcut and live preview | 2026-11-14 | Studio & Master Editor |
-| Word Document Engine | Native `docx` library with single-column layout, native bullets, tab stops, and bolding token parser | 2026-11-14 | Backend export |
-| PDF Export Engine | Native `@media print` Letter layout with chrome isolation & automated title-based naming for 100% searchable ATS vector text | 2026-11-14 | Client export |
-| Batch Packaging | Server-side `archiver` zip streaming over HTTP | 2026-11-14 | Batch export |
+All 5 phases of the MVP milestone are 100% complete:
+1. Phase 1: Core Foundation & Master Resume Management ✅
+2. Phase 2: LinkedIn Job Scraper Engine & Dashboard Feed ✅
+3. Phase 3: Gemini AI Resume Tailoring, Diff Viewer & Interactive Feedback ✅
+4. Phase 4: ATS Template Studio & Customizable Resume Builder (10 Top-Company Templates, Word Bolding, 1-Page Auto-Fit, Multi-Profile Isolation) ✅
+5. Phase 5: Export Engine (PDF & DOCX) & Batch Workflow Integration ✅
 
 ## Blockers
 
