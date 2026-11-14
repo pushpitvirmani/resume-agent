@@ -40,7 +40,18 @@ function formatResumeResponse(record: any): MasterResumeProfile {
 // GET /api/resume
 router.get('/', async (req, res) => {
   try {
-    let resume = await prisma.masterResume.findFirst();
+    const profileId = (req.query.profileId as string) || 'default';
+    let resume = await prisma.masterResume.findFirst({
+      where: { profileId }
+    });
+    
+    if (!resume) {
+      // Fallback to default
+      resume = await prisma.masterResume.findFirst({
+        where: { profileId: 'default' }
+      }) || await prisma.masterResume.findFirst();
+    }
+
     if (!resume) {
       // Seed if empty
       const masterResumePath = path.resolve(__dirname, '../../../.gsd/MASTER_RESUME.json');
@@ -50,6 +61,7 @@ router.get('/', async (req, res) => {
       }
       resume = await prisma.masterResume.create({
         data: {
+          profileId,
           name: defaultData.name || 'Pushpit Virmani',
           email: defaultData.email || 'pushpitvirmani@gmail.com',
           phone: defaultData.phone || '(+91) 7895634749',
@@ -83,7 +95,10 @@ router.put('/', async (req, res) => {
     }
 
     const data = parseResult.data;
-    const existing = await prisma.masterResume.findFirst();
+    const profileId = (req.body.profileId as string) || (req.query.profileId as string) || 'default';
+    const existing = data.id
+      ? await prisma.masterResume.findUnique({ where: { id: data.id } })
+      : await prisma.masterResume.findFirst({ where: { profileId } });
 
     let updated;
     if (existing) {
@@ -107,6 +122,7 @@ router.put('/', async (req, res) => {
     } else {
       updated = await prisma.masterResume.create({
         data: {
+          profileId,
           name: data.name,
           email: data.email,
           phone: data.phone,

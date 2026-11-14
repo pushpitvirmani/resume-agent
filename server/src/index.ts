@@ -11,6 +11,7 @@ import jobsRouter from './routes/jobs.js';
 import aiRouter from './routes/ai.js';
 import scraperRouter from './routes/scraper.js';
 import tailorRouter from './routes/tailor.js';
+import profilesRouter from './routes/profiles.js';
 import { initScheduler } from './services/scheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +34,7 @@ app.use('/api/ai', aiRouter);
 app.use('/api/gemini', aiRouter); // Backward-compatible alias
 app.use('/api/scraper', scraperRouter);
 app.use('/api/tailor', tailorRouter);
+app.use('/api/profiles', profilesRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({

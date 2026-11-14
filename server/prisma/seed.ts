@@ -11,6 +11,19 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database with Pushpit Virmani profile and baseline settings...');
 
+  // 0. Seed Default Profile (Pushpit Virmani)
+  await prisma.profile.upsert({
+    where: { id: 'default' },
+    update: { isDefault: true },
+    create: {
+      id: 'default',
+      name: 'Pushpit Virmani (Default)',
+      description: 'Primary Master Profile for FAANG & AI Startup Applications',
+      isDefault: true,
+    },
+  });
+  console.log('✓ Default Profile initialized');
+
   // 1. Seed or update Master Resume
   const masterResumePath = path.resolve(__dirname, '../../.gsd/MASTER_RESUME.json');
   let masterData: any;

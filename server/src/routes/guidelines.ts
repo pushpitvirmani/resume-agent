@@ -7,7 +7,9 @@ const router = Router();
 // GET /api/guidelines
 router.get('/', async (req, res) => {
   try {
+    const profileId = (req.query.profileId as string) || 'default';
     const guidelines = await prisma.resumeGuideline.findMany({
+      where: { profileId },
       orderBy: { createdAt: 'desc' }
     });
     res.json({ guidelines });
@@ -28,8 +30,9 @@ router.post('/', async (req, res) => {
     }
 
     const { rule, category, active } = parseResult.data;
+    const profileId = (req.body.profileId as string) || 'default';
     const guideline = await prisma.resumeGuideline.create({
-      data: { rule, category, active }
+      data: { profileId, rule, category, active }
     });
 
     res.status(201).json({

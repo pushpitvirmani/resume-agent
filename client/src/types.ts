@@ -164,10 +164,38 @@ export interface TailoredResumeItem {
   updatedAt: string;
 }
 
-export type TemplateId = 'harshit' | 'minimalist' | 'executive';
+export type TemplateId =
+  | 'harshit'
+  | 'minimalist'
+  | 'executive'
+  | 'ivyleague'
+  | 'consulting'
+  | 'aispecialist'
+  | 'growth'
+  | 'enterprise'
+  | 'compact'
+  | 'nordic';
+
+export interface ProfileItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TemplateMetadata {
+  id: TemplateId;
+  name: string;
+  company: string;
+  tagline: string;
+  accent: string;
+  bestFor: string;
+}
 
 export interface TemplateStyleOptions {
-  fontFamily: 'Inter' | 'Arial' | 'Calibri' | 'Georgia' | 'Garamond';
+  fontFamily: string;
   fontSize: 'compact' | 'standard' | 'relaxed';
   spacing: 'compact' | 'standard' | 'roomy';
   accentColor: string;

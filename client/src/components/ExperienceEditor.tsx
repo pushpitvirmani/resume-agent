@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, Trash2, GripVertical, Award } from 'lucide-react';
 import { ExperienceItem } from '../types';
+import { RichBulletEditor } from './RichBulletEditor';
 
 interface ExperienceEditorProps {
   experience: ExperienceItem[];
@@ -153,40 +154,27 @@ export const ExperienceEditor: React.FC<ExperienceEditorProps> = ({ experience, 
                 </button>
               </div>
 
-              <div className="space-y-2">
-                {exp.bullets.map((bullet, bIdx) => {
-                  const quantified = hasMetric(bullet);
-                  return (
-                    <div key={bIdx} className="flex items-start space-x-2">
-                      <div className="mt-2 w-1.5 h-1.5 rounded-full bg-slate-600 shrink-0" />
-                      <div className="flex-1 relative">
-                        <textarea
-                          rows={2}
-                          value={bullet}
-                          onChange={(e) => updateBullet(idx, bIdx, e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 pr-16"
-                        />
-                        {quantified && (
-                          <span
-                            title="Quantified metric detected! Excellent for ATS & FAANG recruiters."
-                            className="absolute right-2 bottom-2 px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/40 text-[10px] font-semibold text-emerald-400 flex items-center space-x-0.5"
-                          >
-                            <Award className="w-2.5 h-2.5" />
-                            <span>Metric</span>
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeBullet(idx, bIdx)}
-                        className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors"
-                        title="Remove bullet"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+              <div className="space-y-3">
+                {exp.bullets.map((bullet, bIdx) => (
+                  <div key={bIdx} className="flex items-start space-x-2">
+                    <div className="flex-1">
+                      <RichBulletEditor
+                        value={bullet}
+                        onChange={(text) => updateBullet(idx, bIdx, text)}
+                        placeholder="Highlight key metrics with bold: **40% growth** across core platform..."
+                        rows={2}
+                      />
                     </div>
-                  );
-                })}
+                    <button
+                      type="button"
+                      onClick={() => removeBullet(idx, bIdx)}
+                      className="p-1.5 mt-2 text-slate-500 hover:text-rose-400 transition-colors"
+                      title="Remove bullet"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

@@ -7,19 +7,51 @@ import {
 } from '../types';
 
 export const api = {
+  // Profiles
+  async getProfiles(): Promise<import('../types').ProfileItem[]> {
+    const res = await fetch('/api/profiles');
+    if (!res.ok) throw new Error('Failed to fetch profiles');
+    const data = await res.json();
+    return data.profiles;
+  },
+
+  async createProfile(name: string, description?: string): Promise<import('../types').ProfileItem> {
+    const res = await fetch('/api/profiles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create profile');
+    }
+    const data = await res.json();
+    return data.profile;
+  },
+
+  async deleteProfile(id: string): Promise<void> {
+    const res = await fetch(`/api/profiles/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete profile');
+    }
+  },
+
   // Master Resume
-  async getResume(): Promise<ResumeProfile> {
-    const res = await fetch('/api/resume');
+  async getResume(profileId?: string): Promise<ResumeProfile> {
+    const url = profileId ? `/api/resume?profileId=${profileId}` : '/api/resume';
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch master resume');
     const data = await res.json();
     return data.profile;
   },
 
-  async updateResume(profile: ResumeProfile): Promise<{ profile: ResumeProfile; message: string }> {
+  async updateResume(profile: ResumeProfile, profileId?: string): Promise<{ profile: ResumeProfile; message: string }> {
+    const payload = profileId ? { ...profile, profileId } : profile;
     const res = await fetch('/api/resume', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(profile)
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.json();
@@ -28,10 +60,11 @@ export const api = {
     return res.json();
   },
 
-  async uploadResume(file: File): Promise<{ profile: ResumeProfile; message: string }> {
+  async uploadResume(file: File, profileId?: string): Promise<{ profile: ResumeProfile; message: string }> {
     const formData = new FormData();
     formData.append('resume', file);
-    const res = await fetch('/api/resume/upload', {
+    const url = profileId ? `/api/resume/upload?profileId=${profileId}` : '/api/resume/upload';
+    const res = await fetch(url, {
       method: 'POST',
       body: formData
     });
@@ -87,18 +120,19 @@ export const api = {
   },
 
   // Guidelines
-  async getGuidelines(): Promise<ResumeGuideline[]> {
-    const res = await fetch('/api/guidelines');
+  async getGuidelines(profileId?: string): Promise<ResumeGuideline[]> {
+    const url = profileId ? `/api/guidelines?profileId=${profileId}` : '/api/guidelines';
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch guidelines');
     const data = await res.json();
     return data.guidelines;
   },
 
-  async createGuideline(rule: string, category: string = 'general'): Promise<ResumeGuideline> {
+  async createGuideline(rule: string, category: string = 'general', profileId?: string): Promise<ResumeGuideline> {
     const res = await fetch('/api/guidelines', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rule, category, active: true })
+      body: JSON.stringify({ rule, category, active: true, profileId: profileId || 'default' })
     });
     if (!res.ok) throw new Error('Failed to create guideline');
     const data = await res.json();

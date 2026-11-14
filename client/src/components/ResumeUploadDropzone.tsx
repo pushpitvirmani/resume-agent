@@ -4,10 +4,11 @@ import { api } from '../services/api';
 import { ResumeProfile } from '../types';
 
 interface ResumeUploadDropzoneProps {
+  profileId?: string;
   onUploadComplete: (profile: ResumeProfile) => void;
 }
 
-export const ResumeUploadDropzone: React.FC<ResumeUploadDropzoneProps> = ({ onUploadComplete }) => {
+export const ResumeUploadDropzone: React.FC<ResumeUploadDropzoneProps> = ({ profileId, onUploadComplete }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -24,7 +25,7 @@ export const ResumeUploadDropzone: React.FC<ResumeUploadDropzoneProps> = ({ onUp
     try {
       setIsUploading(true);
       setStatusMessage(null);
-      const res = await api.uploadResume(file);
+      const res = await api.uploadResume(file, profileId);
       setStatusMessage({
         type: 'success',
         text: `Successfully parsed and imported "${file.name}"! Form fields updated.`

@@ -66,6 +66,8 @@ export interface MasterResumeProfile {
   updatedAt?: string;
 }
 
+export type ResumeProfile = MasterResumeProfile;
+
 export const experienceItemSchema = z.object({
   id: z.string().default(() => Math.random().toString(36).substring(2, 9)),
   company: z.string().min(1, 'Company is required'),
@@ -101,6 +103,7 @@ export const educationItemSchema = z.object({
 });
 
 export const resumeProfileSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Valid email is required'),
   phone: z.string().optional().default(''),
