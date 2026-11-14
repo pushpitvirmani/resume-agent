@@ -1,0 +1,74 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model MasterResume {
+  id             String   @id @default(uuid())
+  name           String
+  email          String
+  phone          String?
+  location       String?
+  linkedinUrl    String?
+  portfolioUrl   String?
+  summary        String
+  experience     String   // JSON serialized ExperienceItem[]
+  projects       String   // JSON serialized ProjectItem[]
+  skills         String   // JSON serialized SkillCategory[]
+  education      String   // JSON serialized EducationItem[]
+  certifications String?  // JSON serialized CertificationItem[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Job {
+  id          String   @id @default(uuid())
+  title       String
+  company     String
+  location    String
+  url         String   @unique
+  description String
+  status      String   @default("discovered") // discovered, tailoring, applied, archived
+  matchScore  Float?
+  keywords    String?  // JSON serialized string[]
+  postedDate  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TailoredResume {
+  id              String   @id @default(uuid())
+  jobId           String
+  masterResumeId  String
+  content         String   // JSON serialized tailored profile
+  atsScore        Float?
+  feedbackHistory String?  // JSON serialized prompts/adjustments
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ResumeGuideline {
+  id        String   @id @default(uuid())
+  rule      String
+  category  String   @default("general") // metrics, style, summary, formatting
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AppSettings {
+  id                String    @id @default("default")
+  activeAiProvider  String    @default("gemini")
+  dailyScheduleCron String    @default("0 9 * * *")
+  maxScrapeJobs     Int       @default(25)
+  scrapeDateFrom    DateTime?
+  dateFilterPreset  String    @default("past_week")
+  keywords          String    @default("Product Manager")
+  location          String    @default("Remote")
+  headless          Boolean   @default(true)
+  updatedAt         DateTime  @updatedAt
+}
