@@ -99,35 +99,16 @@ export async function startScrape(customOptions?: Partial<ScrapeOptions>): Promi
 }
 
 export async function initScheduler(): Promise<void> {
-  try {
-    const settings = await prisma.appSettings.findUnique({
-      where: { id: 'default' },
-    });
-
-    const cronExpr = settings?.dailyScheduleCron || '0 9 * * *';
-    reloadSchedule(cronExpr);
-  } catch (err) {
-    console.warn('[Scheduler] Could not initialize scheduler with DB settings, using default 9am:', err);
-    reloadSchedule('0 9 * * *');
-  }
+  // Scraping occurs strictly on user click of 'Scrape Now' button based on settings.
+  // Automated background cron scraping is disabled to prevent unprompted network calls.
+  console.log('[Scheduler] Scraper service initialized. Scraping executes exclusively upon manual user trigger.');
 }
 
-export function reloadSchedule(cronExpression: string): boolean {
+export function reloadSchedule(_cronExpression: string): boolean {
   if (scheduledTask) {
     scheduledTask.stop();
     scheduledTask = null;
   }
-
-  if (!cron.validate(cronExpression)) {
-    console.warn(`[Scheduler] Invalid cron expression: "${cronExpression}"`);
-    return false;
-  }
-
-  scheduledTask = cron.schedule(cronExpression, async () => {
-    console.log(`[Scheduler] Cron trigger firing at ${new Date().toISOString()}`);
-    await startScrape();
-  });
-
-  console.log(`[Scheduler] Background schedule configured with cron: "${cronExpression}"`);
+  // No automatic background cron execution
   return true;
 }

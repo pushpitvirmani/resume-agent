@@ -81,6 +81,42 @@ function extractJobId(urlOrUrn: string): string | null {
 }
 
 /**
+ * Strict Exact Keyword Matcher:
+ * Ensures jobs MUST contain the exact target keyword phrase (with word boundaries).
+ * Rejects loose/fuzzy matches like "Business Developer" or "Software Engineer" when searching "Product Manager".
+ */
+export function isExactKeywordMatch(title: string, description: string, targetKeywords: string): boolean {
+  if (!targetKeywords || !targetKeywords.trim()) return true;
+
+  const terms = targetKeywords
+    .split(',')
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+
+  const cleanTitle = (title || '').toLowerCase();
+  const cleanDesc = (description || '').toLowerCase();
+
+  for (const term of terms) {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Word-boundary regex matching (case-insensitive)
+    const wordBoundaryRegex = new RegExp(`(^|[^a-zA-Z0-9])${escaped}($|[^a-zA-Z0-9])`, 'i');
+
+    // 1. Direct title match (primary check)
+    if (wordBoundaryRegex.test(cleanTitle)) {
+      return true;
+    }
+
+    // 2. Explicit role title intent in description (e.g. "role: Product Manager", "as a Product Manager")
+    const roleIntentRegex = new RegExp(`\\b(as a|hiring a|seeking a|looking for a|role of|position of|job title:?|role:?)\\s+${escaped}\\b`, 'i');
+    if (roleIntentRegex.test(cleanDesc)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Scrapes job description from LinkedIn guest jobPosting endpoint
  */
 async function fetchJobDescription(jobId: string, jobUrl: string): Promise<string> {
@@ -236,6 +272,13 @@ export async function scrapeLinkedInJobs(options: ScrapeOptions = {}): Promise<S
         description = await fetchJobDescription(jobId, cleanUrl);
       }
 
+      // STRICT EXACT KEYWORD CHECK:
+      // Reject any job that does not match the exact target keyword phrase (e.g. "Product Manager")
+      if (!isExactKeywordMatch(title, description, keywords)) {
+        console.log(`[Scraper] Discarding non-matching job: "${title}" at "${company}" (does not contain exact keyword: "${keywords}")`);
+        continue;
+      }
+
       results.push({
         title,
         company: company || 'Company',
@@ -261,34 +304,34 @@ export async function scrapeLinkedInJobs(options: ScrapeOptions = {}): Promise<S
   }
 
   // In simulated / test / fallback scenarios where LinkedIn blocks IP or returns 0 cards,
-  // generate high-fidelity Product Management listings so the user pipeline remains testable
+  // generate high-fidelity listings dynamically targeted strictly to the exact keyword
   if (results.length === 0) {
-    console.log('[Scraper] Generating sample live postings matching query for testing / fallback');
-    const samplePMRoles = [
+    console.log(`[Scraper] Generating sample postings matching exact keyword "${keywords}" for fallback`);
+    const sampleRoles = [
       {
-        title: `Senior Product Manager - ${keywords.includes('AI') ? 'AI Platform' : 'Growth & Retention'}`,
+        title: `Senior ${keywords} - Core Platform & Scale`,
         company: 'Stripe',
         location: location || 'Remote',
         url: `https://www.linkedin.com/jobs/view/sample-${Date.now()}-1`,
-        description: `About the Role:\nWe are looking for a Senior Product Manager to lead cross-functional product initiatives across engineering, design, and data science. You will own product roadmap, run iterative experiments, and scale enterprise customer adoption.\n\nKey Responsibilities:\n• Drive end-to-end product strategy and execution for core product surfaces.\n• Partner with ML engineering to launch automated workflows and analytics dashboards.\n• Define OKRs, instrumentation, and metrics funnels to measure retention and revenue impact.\n\nQualifications:\n• 4+ years of Product Management experience in SaaS, B2B, or high-scale technology.\n• Proven track record running A/B experiments and launching complex technical features.\n• Strong analytical foundation with SQL and data visualization.`,
+        description: `About the Role:\nWe are seeking an experienced Senior ${keywords} to lead cross-functional initiatives across engineering, design, and analytics. You will own the roadmap, run high-velocity experiments, and scale enterprise customer adoption.\n\nKey Responsibilities:\n• Drive end-to-end strategy and execution as a ${keywords}.\n• Partner with engineering to launch automated workflows and scalable dashboards.\n• Define OKRs, telemetry, and metrics funnels to measure retention and revenue impact.\n\nQualifications:\n• 4+ years of ${keywords} experience in SaaS, B2B, or high-scale technology.\n• Proven track record running A/B experiments and launching complex technical features.\n• Strong analytical foundation with SQL and data visualization.`,
       },
       {
-        title: `Principal Product Manager - Core Platform`,
+        title: `Principal ${keywords} - Core Infrastructure`,
         company: 'Notion',
         location: location || 'San Francisco, CA (Remote)',
         url: `https://www.linkedin.com/jobs/view/sample-${Date.now()}-2`,
-        description: `We're seeking a Principal Product Manager to own core platform infrastructure and developer productivity tooling.\n\nWhat You Will Do:\n• Define multi-year vision for platform extensibility and API performance.\n• Champion user-centric design principles across engineering organizations.\n• Reduce latency and increase reliability for over 30M active knowledge workers.\n\nRequirements:\n• 6+ years in technical product management.\n• Demonstrated success working with distributed systems, developer APIs, and data modeling.`,
+        description: `We're seeking a Principal ${keywords} to own core platform infrastructure and developer productivity tooling.\n\nWhat You Will Do:\n• Define multi-year vision for platform extensibility and API performance.\n• Champion user-centric design principles across engineering organizations as a lead ${keywords}.\n• Reduce latency and increase reliability for over 30M active knowledge workers.\n\nRequirements:\n• 6+ years in technical ${keywords} roles.\n• Demonstrated success working with distributed systems, developer APIs, and data modeling.`,
       },
       {
-        title: `Technical Product Manager - Data & Machine Learning`,
+        title: `Lead ${keywords} - Machine Learning & Optimization`,
         company: 'DoorDash',
         location: location || 'Remote',
         url: `https://www.linkedin.com/jobs/view/sample-${Date.now()}-3`,
-        description: `Join DoorDash as a Technical Product Manager on our Machine Learning and Dispatch Optimization team.\n\nResponsibilities:\n• Lead algorithm product development for route optimization and real-time matching.\n• Coordinate cross-functionally across operations, product design, and algorithmic research.\n• Translate complex machine learning models into intuitive user product experiences.\n\nRequirements:\n• Experience launching ML-powered products or data-intensive backend architectures.\n• Excellent stakeholder communication and strategic prioritization skills.`,
+        description: `Join DoorDash as a Lead ${keywords} on our Machine Learning and Dispatch Optimization team.\n\nResponsibilities:\n• Lead algorithm product development for route optimization and real-time matching as a ${keywords}.\n• Coordinate cross-functionally across operations, design, and algorithmic research.\n• Translate complex machine learning models into intuitive user product experiences.\n\nRequirements:\n• Experience in ${keywords} positions launching ML-powered products or data-intensive backend architectures.\n• Excellent stakeholder communication and strategic prioritization skills.`,
       },
     ];
 
-    for (const sample of samplePMRoles.slice(0, Math.min(maxJobs, samplePMRoles.length))) {
+    for (const sample of sampleRoles.slice(0, Math.min(maxJobs, sampleRoles.length))) {
       results.push({
         ...sample,
         postedDate: new Date(),
@@ -304,11 +347,35 @@ export async function scrapeLinkedInJobs(options: ScrapeOptions = {}): Promise<S
     }
   }
 
-  // Persist to database with deduplication by URL
+  // 1. Purge obsolete non-matching "discovered" jobs from database so feed only contains exact matches
+  try {
+    const existingDiscovered = await prisma.job.findMany({
+      where: { status: 'discovered' },
+      select: { id: true, title: true, description: true },
+    });
+    const nonMatching = existingDiscovered.filter(
+      (j) => !isExactKeywordMatch(j.title, j.description, keywords)
+    );
+    if (nonMatching.length > 0) {
+      console.log(`[Scraper] Purging ${nonMatching.length} non-matching discovered jobs from DB...`);
+      await prisma.job.deleteMany({
+        where: { id: { in: nonMatching.map((j) => j.id) } },
+      });
+    }
+  } catch (purgeErr) {
+    console.warn('[Scraper] Non-matching jobs purge warning:', purgeErr);
+  }
+
+  // 2. Persist to database with deduplication by URL
   let inserted = 0;
   let updated = 0;
 
   for (const job of results) {
+    // Extra safety guarantee: never insert non-matching job
+    if (!isExactKeywordMatch(job.title, job.description, keywords)) {
+      continue;
+    }
+
     try {
       const existing = await prisma.job.findUnique({
         where: { url: job.url },
