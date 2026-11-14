@@ -258,7 +258,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
         </div>
       </div>
 
-      {/* Saved Resumes & Download Center */}
+      {/* Saved Resumes & Download Center: Only Master & Saved as New Resumes */}
       <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
           <div>
@@ -267,7 +267,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
               <h3 className="text-sm font-bold text-white">Saved Resumes & Download Center</h3>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              1-click Word (.docx) and PDF downloads for your Master profile, custom profiles, and AI-tailored resumes.
+              1-click Word (.docx) and PDF downloads for your Master Resume and saved custom resumes.
             </p>
           </div>
           <button
@@ -349,7 +349,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
             </div>
           </div>
 
-          {/* 2. Custom Named Profiles */}
+          {/* 2. Custom Profiles (Saved as New Resumes) */}
           {profiles.filter((p) => !p.isDefault).map((prof) => (
             <div
               key={prof.id}
@@ -365,11 +365,11 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
                       {prof.name}
                     </h4>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-500/30 font-semibold">
-                      Custom Profile
+                      Saved Resume
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    {prof.description || 'Independent resume profile with custom achievements'}
+                  <p className="text-[11px] text-slate-300 mt-0.5 font-medium">
+                    {prof.description || 'Custom tailored resume'}
                   </p>
                 </div>
               </div>
@@ -415,93 +415,10 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
             </div>
           ))}
 
-          {/* 3. Tailored Resumes */}
-          {tailoredResumes.map((tailored) => (
-            <div
-              key={tailored.id}
-              className="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/20 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-emerald-500/40 transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0 mt-0.5">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-xs font-bold text-slate-100">
-                      {tailored.job?.company || 'Company'} — {tailored.job?.title || 'Tailored Resume'}
-                    </h4>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 font-semibold">
-                      Tailored ({tailored.atsScore}% ATS)
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    {tailored.job?.location ? `${tailored.job.location} • ` : ''}Updated with AI tailored achievements & keyword match
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
-                <button
-                  onClick={() => handleDownloadPdf({
-                    type: 'tailored',
-                    id: tailored.jobId,
-                    name: `${tailored.job?.company || 'Job'}_Resume`
-                  })}
-                  disabled={downloadingPdfId === tailored.jobId}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
-                  title="Download tailored 1-page PDF (.pdf)"
-                >
-                  {downloadingPdfId === tailored.jobId ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  <span>PDF (.pdf)</span>
-                </button>
-
-                <button
-                  onClick={() => handleDownloadDocx({
-                    type: 'tailored',
-                    id: tailored.jobId,
-                    name: `${tailored.job?.company || 'Job'}_Resume`
-                  })}
-                  disabled={downloadingId === tailored.jobId}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-all disabled:opacity-50"
-                  title="Download tailored Word document (.docx)"
-                >
-                  {downloadingId === tailored.jobId ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5 text-emerald-400" />
-                  )}
-                  <span>Word (.docx)</span>
-                </button>
-
-                <button
-                  onClick={() => onNavigate('tailor', tailored.jobId)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all"
-                  title="Open in Tailor & Review Studio"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Tailor & Review</span>
-                </button>
-
-                <button
-                  onClick={() => onNavigate('templates', tailored.jobId)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition-all"
-                  title="Open in Resume Studio"
-                >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>Studio</span>
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {/* Empty State when no tailored resumes or custom profiles exist */}
-          {profiles.filter((p) => !p.isDefault).length === 0 && tailoredResumes.length === 0 && (
+          {/* Empty State when no custom saved resumes exist */}
+          {profiles.filter((p) => !p.isDefault).length === 0 && (
             <div className="p-4 rounded-xl bg-slate-950/40 border border-dashed border-slate-800 text-center text-xs text-slate-400">
-              Your Master Resume is ready for download above. When you tailor resumes for jobs or save new profiles, they will appear here with 1-click download options!
+              Your Master Resume is ready for download above. Saved custom resumes will appear here with 1-click download options!
             </div>
           )}
         </div>

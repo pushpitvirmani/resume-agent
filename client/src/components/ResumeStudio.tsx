@@ -23,7 +23,8 @@ import {
   Info,
   ChevronRight,
   RefreshCw,
-  FolderOpen
+  FolderOpen,
+  Save
 } from 'lucide-react';
 import { api } from '../services/api';
 import {
@@ -115,6 +116,11 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
   // Word Bolding / Inline Content Editor Modal
   const [showBulletEditor, setShowBulletEditor] = useState<boolean>(false);
   const [editingExperienceIndex, setEditingExperienceIndex] = useState<number>(0);
+
+  // In-Memory Visual Changes & Save State (Changes persist ONLY on clicking Save)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+  const [savingStudio, setSavingStudio] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Load profiles on mount
   const loadProfiles = async () => {
@@ -309,7 +315,7 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
     setTemplateId('compact');
   };
 
-  // Save bullet changes made in modal back to master resume or current tailored
+  // Save bullet changes made in modal back to master resume or current tailored (In-memory visual update only)
   const handleSaveBulletChange = async (expIndex: number, bulletIndex: number, newText: string) => {
     if (!masterResume) return;
 
@@ -325,11 +331,9 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
       };
 
       setMasterResume(updatedProfile);
-      try {
-        await api.updateResume(updatedProfile, activeProfileId);
-      } catch (err) {
-        console.error('Failed to save master resume bullet update:', err);
-      }
+      setHasUnsavedChanges(true);
+      setToastMessage('Changes updated in visual resume preview! Click "Save Changes" to persist.');
+      setTimeout(() => setToastMessage(null), 4000);
     } else if (currentTailored) {
       const updatedExp = [...currentTailored.content.experience];
       if (updatedExp[expIndex]) {
@@ -354,13 +358,30 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
           ...currentTailored,
           content: updatedContent,
         });
-
-        try {
-          await api.updateTailoredResume(currentTailored.id, updatedContent);
-        } catch (err) {
-          console.error('Failed to update tailored resume bullet:', err);
-        }
+        setHasUnsavedChanges(true);
+        setToastMessage('Changes updated in visual resume preview! Click "Save Changes" to persist.');
+        setTimeout(() => setToastMessage(null), 4000);
       }
+    }
+  };
+
+  // Persist Studio Changes to Database (Only on explicit user Save click)
+  const handlePersistStudioChanges = async () => {
+    if (!masterResume) return;
+    try {
+      setSavingStudio(true);
+      if (selectedSource === 'master') {
+        await api.updateResume(masterResume, activeProfileId);
+      } else if (currentTailored) {
+        await api.updateTailoredResume(currentTailored.id, currentTailored.content);
+      }
+      setHasUnsavedChanges(false);
+      setToastMessage('Resume Studio changes saved successfully to database!');
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (err: any) {
+      alert(`Failed to save changes: ${err.message || 'Error updating resume'}`);
+    } finally {
+      setSavingStudio(false);
     }
   };
 
@@ -371,7 +392,15 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
   const activeTemplateMeta = TEMPLATES_CATALOG.find((t) => t.id === templateId) || TEMPLATES_CATALOG[0];
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs animate-in fade-in slide-in-from-top-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Top Studio Control Bar */}
       <header className="px-5 py-3 bg-slate-900/90 backdrop-blur border-b border-slate-800 flex flex-wrap items-center justify-between gap-4 z-20">
         <div className="flex items-center gap-3">
@@ -436,6 +465,29 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
           >
             <Edit3 className="w-3.5 h-3.5 text-indigo-400" />
             <span>Format & Bold Words</span>
+          </button>
+
+          {/* SAVE CHANGES CTA: Only persists to database on click */}
+          <button
+            onClick={handlePersistStudioChanges}
+            disabled={savingStudio || !hasUnsavedChanges}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-md transition-all ${
+              hasUnsavedChanges
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 ring-2 ring-emerald-400/50 cursor-pointer animate-pulse'
+                : 'bg-slate-800/60 text-slate-400 border border-slate-700/60 opacity-60 cursor-not-allowed'
+            }`}
+            title={
+              hasUnsavedChanges
+                ? 'Click to persist visual changes to the database'
+                : 'All changes saved'
+            }
+          >
+            {savingStudio ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            <span>{savingStudio ? 'Saving...' : hasUnsavedChanges ? 'Save Changes' : 'Saved'}</span>
           </button>
 
           {/* Download PDF (.pdf) Button */}

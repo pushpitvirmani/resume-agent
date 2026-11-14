@@ -50,8 +50,8 @@ interface TailorStudioProps {
 
 // Strictly verified working models for this API key (zero 403/429/404 errors)
 const WORKING_GEMINI_MODELS = [
-  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite', badge: 'Fast & High Quota (Recommended)', icon: '⚡' },
-  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite', badge: 'High Speed Stable', icon: '⚡' },
+  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite', badge: 'Ultra Fast & High Quota (Recommended Default)', icon: '⚡' },
+  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite', badge: 'High Quota Stable', icon: '⚡' },
   { id: 'gemini-3-flash-preview', name: 'Gemini 3.0 Flash Preview', badge: 'Next-Gen Speed', icon: '✨' },
   { id: 'gemini-flash-lite-latest', name: 'Gemini Flash-Lite Latest', badge: 'Continuous Release', icon: '🚀' },
 ];
@@ -69,8 +69,11 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
   const [exportingDocx, setExportingDocx] = useState<boolean>(false);
   const [exportingPdf, setExportingPdf] = useState<boolean>(false);
 
-  // Gemini Model Selection - strictly verified allowed models
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.1-flash-lite');
+  // Gemini Model Selection - Default to best verified performing model (Gemini 3.5 Flash-Lite)
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.5-flash-lite');
+
+  // Track if changes have been applied to preview but not yet persisted via top CTA
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
 
   // Interactive Section Filter: 'all' | 'summary' | 'skills' | expId
   const [activeSection, setActiveSection] = useState<string>('all');
@@ -375,9 +378,9 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
     }
   };
 
-  // Internal helper to apply any bullet (recommendation or alternative) to left side & immediately persist
-  const applyAndSaveBullet = async (expIdx: number, bulletIdx: number, textToApply: string) => {
-    if (!editableContent || !tailoredResume) return;
+  // Internal helper to apply any bullet (recommendation or alternative) to UI preview only (persists only upon top CTA click)
+  const applyBulletToUI = (expIdx: number, bulletIdx: number, textToApply: string) => {
+    if (!editableContent) return;
 
     const bulletKey = `exp_${expIdx}_b_${bulletIdx}`;
     const updatedAppliedMap = { ...appliedMap, [bulletKey]: textToApply };
@@ -397,30 +400,25 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
       appliedMap: updatedAppliedMap,
     };
     setEditableContent(updatedContent);
+    setHasUnsavedChanges(true);
 
     const newScore = calculateDynamicAtsScore(updatedContent, currentJob).score;
-    try {
-      const res = await api.updateTailoredResume(tailoredResume.id, updatedContent, newScore);
-      setTailoredResume(res.tailoredResume);
-      setToastMessage(`Bullet point applied to current resume & saved! (ATS Score: ${newScore}%)`);
-      setTimeout(() => setToastMessage(null), 3000);
-    } catch (err) {
-      console.error('Failed to auto-save bullet:', err);
-    }
+    setToastMessage(`Bullet point applied to resume preview! (Projected ATS: ${newScore}%). Click 'Update' or 'Save as new resume' to persist.`);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // 1-Click Apply AI Recommendation for a specific bullet (Updates left side & immediately saves)
-  const handleApplyRecommendation = async (expIdx: number, bulletIdx: number) => {
+  // 1-Click Apply AI Recommendation for a specific bullet (Reflects in UI preview only)
+  const handleApplyRecommendation = (expIdx: number, bulletIdx: number) => {
     if (!recommendedContent) return;
     const recBullet = recommendedContent.experience[expIdx]?.bullets[bulletIdx];
     if (!recBullet) return;
     const recText = typeof recBullet === 'string' ? recBullet : recBullet.tailored || recBullet.original;
-    await applyAndSaveBullet(expIdx, bulletIdx, recText);
+    applyBulletToUI(expIdx, bulletIdx, recText);
   };
 
-  // 1-Click Apply Alternative Pointer for a specific bullet (Updates left side & immediately saves)
-  const handleApplyPointer = async (expIdx: number, bulletIdx: number, pointerText: string) => {
-    await applyAndSaveBullet(expIdx, bulletIdx, pointerText);
+  // 1-Click Apply Alternative Pointer for a specific bullet (Reflects in UI preview only)
+  const handleApplyPointer = (expIdx: number, bulletIdx: number, pointerText: string) => {
+    applyBulletToUI(expIdx, bulletIdx, pointerText);
   };
 
   // Toggle "Show More Pointers" visibility
@@ -428,9 +426,9 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
     setExpandedPointers((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // 1-Click Apply Summary Recommendation (Updates left side & immediately saves)
-  const handleApplySummaryRecommendation = async () => {
-    if (!editableContent || !recommendedContent || !tailoredResume) return;
+  // 1-Click Apply Summary Recommendation (Reflects in UI preview only)
+  const handleApplySummaryRecommendation = () => {
+    if (!editableContent || !recommendedContent) return;
     const recSummary = recommendedContent.summary;
 
     const updatedAppliedMap = { ...appliedMap, summary: recSummary };
@@ -443,22 +441,61 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
       appliedMap: updatedAppliedMap,
     };
     setEditableContent(updatedContent);
+    setHasUnsavedChanges(true);
 
     const newScore = calculateDynamicAtsScore(updatedContent, currentJob).score;
-    try {
-      const res = await api.updateTailoredResume(tailoredResume.id, updatedContent, newScore);
-      setTailoredResume(res.tailoredResume);
-      setToastMessage(`Summary recommendation applied & saved! (ATS Score: ${newScore}%)`);
-      setTimeout(() => setToastMessage(null), 3000);
-    } catch (err) {
-      console.error('Failed to auto-save summary recommendation:', err);
+    setToastMessage(`Summary recommendation applied to preview! (Projected ATS: ${newScore}%). Click 'Update' or 'Save as new resume' to persist.`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // 1-Click Apply Skills Recommendation (Reflects in UI preview only)
+  const handleApplySkillsRecommendation = () => {
+    if (!editableContent || !recommendedContent?.skills) return;
+
+    const updatedAppliedMap = { ...appliedMap, skills: 'applied' };
+    setAppliedMap(updatedAppliedMap);
+
+    const updatedContent: TailoredContent = {
+      ...editableContent,
+      skills: recommendedContent.skills,
+      appliedSections: Object.keys(updatedAppliedMap),
+      appliedMap: updatedAppliedMap,
+    };
+    setEditableContent(updatedContent);
+    setHasUnsavedChanges(true);
+
+    const newScore = calculateDynamicAtsScore(updatedContent, currentJob).score;
+    setToastMessage(`Skills recommendation applied to preview! (Projected ATS: ${newScore}%). Click 'Update' or 'Save as new resume' to persist.`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Expected ATS score post applying skills recommendation
+  const getExpectedAtsForSkills = (recSkills: any[]): { score: number; delta: number } => {
+    if (!editableContent) return { score: 75, delta: 0 };
+    const currentScore = dynamicAts?.score ?? calculateDynamicAtsScore(editableContent, currentJob).score;
+    const simContent: TailoredContent = {
+      ...editableContent,
+      skills: recSkills,
+    };
+    const simScore = calculateDynamicAtsScore(simContent, currentJob).score;
+    return { score: simScore, delta: simScore - currentScore };
+  };
+
+  // Open "Save as New Resume" modal with auto-appended job name in description
+  const handleOpenSaveNewResumeModal = () => {
+    const jobTag = currentJob ? `${currentJob.company} — ${currentJob.title}` : 'Target Role';
+    if (!newResumeName.trim()) {
+      setNewResumeName(`${currentJob?.company || 'Target'} Resume`);
     }
+    // Automatically pre-populate/append target job name in description (editable by user)
+    setNewResumeDesc(`Tailored for: ${jobTag}`);
+    setShowSaveNewResumeModal(true);
   };
 
   // Execute Combined CTA Action
   const executeCtaAction = () => {
     if (ctaAction === 'save_new') {
-      setShowSaveNewResumeModal(true);
+      handleOpenSaveNewResumeModal();
     } else if (ctaAction === 'update_current') {
       handleSaveInPlaceEdits();
     } else if (ctaAction === 'update_master') {
@@ -470,6 +507,7 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
   const handleSummaryChange = (newSummary: string) => {
     if (!editableContent) return;
     setEditableContent({ ...editableContent, summary: newSummary });
+    setHasUnsavedChanges(true);
   };
 
   // Direct In-Place Edit of Bullet
@@ -490,14 +528,15 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
 
     updatedExp[expIdx] = { ...updatedExp[expIdx], bullets: updatedBullets };
     setEditableContent({ ...editableContent, experience: updatedExp });
+    setHasUnsavedChanges(true);
   };
 
-  // CTA 1: Update All Changes to Master Resume
+  // CTA 1: Update All Changes to Master Resume (Persists to DB)
   const handleUpdateAllToMasterResume = async () => {
     if (!editableContent || !masterResume) return;
     if (
       !window.confirm(
-        'Are you sure you want to update your Master Resume with all current tailored achievements and summary? This will become your new baseline master resume.'
+        'Are you sure you want to update your Master Resume with all current tailored achievements, summary, and skills? This will permanently update your baseline Master Resume in the database.'
       )
     ) {
       return;
@@ -518,11 +557,19 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
             ),
           };
         }),
+        skills: editableContent.skills,
       };
 
       const res = await api.updateResume(updatedMaster, selectedBaselineResumeId === 'master' ? 'default' : selectedBaselineResumeId);
       setMasterResume(res.profile);
-      setToastMessage('Master Resume successfully updated with tailored achievements!');
+
+      if (tailoredResume) {
+        const newScore = dynamicAts?.score || tailoredResume.atsScore;
+        await api.updateTailoredResume(tailoredResume.id, editableContent, newScore);
+      }
+
+      setHasUnsavedChanges(false);
+      setToastMessage('Master Resume successfully updated and saved with all current changes!');
       setTimeout(() => setToastMessage(null), 4000);
     } catch (err: any) {
       alert(`Failed to update Master Resume: ${err.message}`);
@@ -531,7 +578,7 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
     }
   };
 
-  // CTA 2: Save as New Resume (Profile)
+  // CTA 2: Save as New Resume Profile (Persists as new profile with auto-appended job tag)
   const handleSaveAsNewResume = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newResumeName.trim() || !editableContent || !masterResume) return;
@@ -555,18 +602,25 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
             ),
           };
         }),
+        skills: editableContent.skills,
       };
 
       await api.updateResume(customProfileResume, createdProf.id);
 
-      // Refresh profiles list
+      // Also persist to current tailored resume record if exists
+      if (tailoredResume) {
+        const newScore = dynamicAts?.score || tailoredResume.atsScore;
+        await api.updateTailoredResume(tailoredResume.id, editableContent, newScore);
+      }
+
+      setHasUnsavedChanges(false);
       const updatedList = await api.getProfiles();
       setProfiles(updatedList);
       setShowSaveNewResumeModal(false);
       setNewResumeName('');
       setNewResumeDesc('');
-      setToastMessage(`New resume "${createdProf.name}" created! Available in Overview and Studio.`);
-      setTimeout(() => setToastMessage(null), 4000);
+      setToastMessage(`New resume "${createdProf.name}" created and saved! Visible in Overview with job tag.`);
+      setTimeout(() => setToastMessage(null), 4500);
     } catch (err: any) {
       alert(`Failed to create new resume: ${err.message}`);
     } finally {
@@ -853,11 +907,17 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
         <div className="space-y-4">
           {/* Action CTAs Banner: Single Combined Dropdown CTA */}
           <div className="bg-slate-900/90 border border-indigo-500/30 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-md">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs font-semibold text-slate-200">
                 Tailored for: <strong className="text-white">{currentJob?.company} — {currentJob?.title}</strong>
               </span>
+              {hasUnsavedChanges && (
+                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 animate-pulse">
+                  <AlertCircle className="w-3 h-3" />
+                  Unsaved Changes (Preview Only) — Click CTA to Persist
+                </span>
+              )}
             </div>
 
             {/* Combined CTA with Dropdown */}
@@ -901,7 +961,7 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
                     onClick={() => {
                       setCtaAction('save_new');
                       setShowCtaDropdown(false);
-                      setShowSaveNewResumeModal(true);
+                      handleOpenSaveNewResumeModal();
                     }}
                     className={`w-full text-left px-3 py-2.5 rounded-lg flex items-start gap-2.5 hover:bg-slate-800 transition-colors ${
                       ctaAction === 'save_new' ? 'bg-slate-800 border border-purple-500/40' : ''
@@ -1250,10 +1310,10 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
                         <button
                           onClick={handleApplySummaryRecommendation}
                           className="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white border border-purple-500/40 text-[10px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
-                          title="Adopt this summary recommendation and immediately save"
+                          title="Adopt this summary recommendation into resume preview"
                         >
                           <Check className="w-3 h-3" />
-                          Apply & Save
+                          Apply to Resume
                         </button>
                       )}
                     </div>
@@ -1345,10 +1405,10 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
                                       <button
                                         onClick={() => handleApplyRecommendation(expIdx, bIdx)}
                                         className="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white border border-purple-500/40 text-[10px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
-                                        title="Adopt this recommendation and immediately save"
+                                        title="Adopt this recommendation into resume preview"
                                       >
                                         <Check className="w-2.5 h-2.5" />
-                                        Apply & Save
+                                        Apply to Resume
                                       </button>
                                     )}
                                   </div>
@@ -1460,6 +1520,66 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+
+                {/* 4. Recommended Skills Section (Suggestions for Skills Section) */}
+                {(activeSection === 'all' || activeSection === 'skills') && recommendedContent?.skills && (
+                  <div className="space-y-3 p-3.5 rounded-xl bg-slate-950/70 border border-purple-500/30">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] uppercase font-bold text-purple-400 tracking-wider flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          AI Recommended Skills Alignment
+                        </span>
+                        {(() => {
+                          const expected = getExpectedAtsForSkills(recommendedContent.skills);
+                          return (
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-md font-bold flex items-center gap-1 border ${
+                                expected.delta > 0
+                                  ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+                                  : 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40'
+                              }`}
+                              title="Simulated ATS score if these skills are applied"
+                            >
+                              <TrendingUp className="w-2.5 h-2.5" />
+                              <span>Expected ATS: {expected.score}%</span>
+                              {expected.delta > 0 && (
+                                <span className="text-emerald-400 font-extrabold">(+{expected.delta}%)</span>
+                              )}
+                            </span>
+                          );
+                        })()}
+                      </div>
+
+                      {appliedMap['skills'] ? (
+                        <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span>Applied to Resume</span>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={handleApplySkillsRecommendation}
+                          className="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white border border-purple-500/40 text-[10px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
+                          title="Adopt this skills recommendation into resume preview"
+                        >
+                          <Check className="w-2.5 h-2.5" />
+                          Apply to Resume
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+                      {recommendedContent.skills.map((cat, sIdx) => (
+                        <div key={sIdx} className="text-xs">
+                          <strong className="text-purple-300">{cat.category}: </strong>
+                          <span className="text-slate-300">
+                            {Array.isArray(cat.skills) ? cat.skills.join(' • ') : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -1615,10 +1735,13 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-slate-300">Description / Focus (Optional)</label>
+                <label className="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
+                  <span>Description / Focus</span>
+                  <span className="text-[10px] text-purple-400 font-normal">Job name auto-appended • Editable</span>
+                </label>
                 <input
                   type="text"
-                  placeholder="e.g. Tailored for enterprise cloud and AI platforms"
+                  placeholder="e.g. Tailored for Google — Senior Product Manager"
                   value={newResumeDesc}
                   onChange={(e) => setNewResumeDesc(e.target.value)}
                   className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"

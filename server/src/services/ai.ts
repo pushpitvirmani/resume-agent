@@ -45,7 +45,7 @@ export async function checkAIStatus(): Promise<AIStatusReport> {
     providers: {
       gemini: {
         configured: Boolean(geminiKey),
-        model: 'gemini-3.1-flash-lite',
+        model: 'gemini-3.5-flash-lite',
         connected: false,
         message: geminiKey ? 'API Key configured' : 'GEMINI_API_KEY not configured in .env'
       },
@@ -135,16 +135,16 @@ export async function generateText(
       return text;
     };
 
-    const targetModel = options?.model || 'gemini-3.1-flash-lite';
+    const targetModel = options?.model || 'gemini-3.5-flash-lite';
     try {
       return await tryGenerate(targetModel);
     } catch (err: any) {
-      if (targetModel !== 'gemini-3.1-flash-lite') {
-        console.warn(`[AI Service] ${targetModel} error (${err.message}), trying gemini-3.1-flash-lite fallback...`);
-        return await tryGenerate('gemini-3.1-flash-lite');
+      if (targetModel !== 'gemini-3.5-flash-lite') {
+        console.warn(`[AI Service] ${targetModel} error (${err.message}), trying gemini-3.5-flash-lite fallback...`);
+        return await tryGenerate('gemini-3.5-flash-lite');
       }
-      console.warn(`[AI Service] gemini-3.1-flash-lite error (${err.message}), trying gemini-3.5-flash-lite fallback...`);
-      return await tryGenerate('gemini-3.5-flash-lite');
+      console.warn(`[AI Service] gemini-3.5-flash-lite error (${err.message}), trying gemini-3.1-flash-lite fallback...`);
+      return await tryGenerate('gemini-3.1-flash-lite');
     }
   }
 
