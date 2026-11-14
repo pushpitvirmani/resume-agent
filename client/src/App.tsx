@@ -5,6 +5,7 @@ import { OverviewDashboard } from './components/OverviewDashboard';
 import { JobsFeedPanel } from './components/JobsFeedPanel';
 import { MasterResumeEditor } from './components/MasterResumeEditor';
 import { SettingsPanel } from './components/SettingsPanel';
+import { TailorStudio } from './components/TailorStudio';
 import { Sparkles, Layers, ArrowRight } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -54,22 +55,7 @@ export const App: React.FC = () => {
           )}
 
           {activeTab === 'tailor' && (
-            <div className="max-w-4xl mx-auto p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-4 my-12">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-slate-100">Tailor & Review Studio (Phase 3)</h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                The 3-column workspace with side-by-side diff, keyword checklist, and your interactive AI feedback chat is scheduled for implementation in <strong>Phase 3</strong>.
-              </p>
-              <button
-                onClick={() => setActiveTab('resume')}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-              >
-                <span>Edit Master Resume First</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <TailorStudio />
           )}
 
           {activeTab === 'templates' && (

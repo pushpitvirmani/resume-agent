@@ -21,7 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     { id: 'overview' as NavTab, label: 'Overview', icon: LayoutDashboard },
     { id: 'jobs' as NavTab, label: 'LinkedIn Jobs', icon: Briefcase },
     { id: 'resume' as NavTab, label: 'Master Resume', icon: FileEdit },
-    { id: 'tailor' as NavTab, label: 'Tailor & Review', icon: Sparkles, badge: 'Phase 3' },
+    { id: 'tailor' as NavTab, label: 'Tailor & Review', icon: Sparkles, badge: 'AI Diff' },
     { id: 'templates' as NavTab, label: 'Resume Studio', icon: Layers, badge: 'Phase 4' },
     { id: 'settings' as NavTab, label: 'Settings', icon: Settings },
   ];

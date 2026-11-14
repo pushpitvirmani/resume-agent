@@ -114,3 +114,52 @@ export interface ScraperStatus {
   lastResult: { scraped: number; inserted: number; updated: number } | null;
   error: string | null;
 }
+
+export interface TailoredBulletDiff {
+  original: string;
+  tailored: string;
+  changes?: string;
+}
+
+export interface TailoredExperienceItem {
+  id: string;
+  company: string;
+  role: string;
+  location: string;
+  bullets: TailoredBulletDiff[];
+}
+
+export interface TailoredContent {
+  summary: string;
+  experience: TailoredExperienceItem[];
+  skills: Array<{ category: string; skills: string[] }>;
+  atsAnalysis: {
+    score: number;
+    matchedKeywords: string[];
+    missingKeywords: string[];
+    summaryFeedback: string;
+  };
+}
+
+export interface SuggestedGuideline {
+  rule: string;
+  category: 'metrics' | 'style' | 'summary' | 'formatting' | 'general' | string;
+  reasoning: string;
+}
+
+export interface TailoredResumeItem {
+  id: string;
+  jobId: string;
+  masterResumeId: string;
+  atsScore?: number;
+  content: TailoredContent;
+  feedbackHistory?: Array<{
+    feedback: string;
+    timestamp: string;
+    section?: string;
+    bulletIndex?: number;
+    suggestedGuideline?: SuggestedGuideline | null;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}

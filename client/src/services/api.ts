@@ -166,5 +166,67 @@ export const api = {
       throw new Error(err.error || 'Failed to trigger scraper');
     }
     return res.json();
+  },
+
+  // AI Tailoring
+  async tailorResume(jobId: string, masterResumeId?: string): Promise<{ ok: boolean; tailoredResume: import('../types').TailoredResumeItem }> {
+    const res = await fetch('/api/tailor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, masterResumeId })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to generate tailored resume');
+    }
+    return res.json();
+  },
+
+  async getTailoredResume(id: string): Promise<{ ok: boolean; tailoredResume: import('../types').TailoredResumeItem }> {
+    const res = await fetch(`/api/tailor/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch tailored resume');
+    return res.json();
+  },
+
+  async getTailoredResumeByJob(jobId: string): Promise<{ ok: boolean; tailoredResume: import('../types').TailoredResumeItem | null }> {
+    const res = await fetch(`/api/tailor/job/${jobId}`);
+    if (res.status === 404) return { ok: false, tailoredResume: null };
+    if (!res.ok) throw new Error('Failed to fetch tailored resume for job');
+    return res.json();
+  },
+
+  async updateTailoredResume(id: string, content: import('../types').TailoredContent): Promise<{ ok: boolean; tailoredResume: import('../types').TailoredResumeItem }> {
+    const res = await fetch(`/api/tailor/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to save tailored resume changes');
+    }
+    return res.json();
+  },
+
+  async refineTailoredResume(
+    id: string,
+    feedback: string,
+    section?: string,
+    bulletIndex?: number
+  ): Promise<{
+    ok: boolean;
+    tailoredResume: import('../types').TailoredResumeItem;
+    suggestedGuideline?: import('../types').SuggestedGuideline | null;
+  }> {
+    const res = await fetch(`/api/tailor/${id}/refine`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedback, section, bulletIndex })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to refine tailored resume');
+    }
+    return res.json();
   }
 };
