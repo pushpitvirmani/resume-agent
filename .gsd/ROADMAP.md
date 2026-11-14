@@ -4,9 +4,9 @@
 > **Milestone**: v1.0 (MVP)
 
 ## Must-Haves (from SPEC)
-- [ ] Headless scheduled LinkedIn scraper for Product Management roles
-- [ ] Job management dashboard with schedule triggers and posting selection
-- [ ] Master resume profile schema and storage
+- [x] Headless scheduled LinkedIn scraper for Product Management roles
+- [x] Job management dashboard with schedule triggers and posting selection
+- [x] Master resume profile schema and storage
 - [ ] Gemini API-driven JD analysis, keyword extraction, and bullet customization
 - [ ] Side-by-side diff viewer with interactive feedback widget for iterative tweaks
 - [ ] FAANG/AI startup ATS-optimized resume template library
@@ -21,7 +21,7 @@
 **Requirements**: REQ-03  
 
 ### Phase 2: LinkedIn Job Scraper Engine & Dashboard Feed
-**Status**: ⬜ Not Started  
+**Status**: ✅ Complete  
 **Objective**: Build the headless LinkedIn job scraper with scheduling capability, error/rate-limit handling, and the dashboard job list view with status tracking.  
 **Requirements**: REQ-01, REQ-02  
 
