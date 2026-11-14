@@ -69,6 +69,28 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/jobs - Clear all scraped jobs
+router.delete('/', async (req, res) => {
+  try {
+    const { status } = req.query;
+    const where = status ? { status: String(status) } : {};
+
+    const jobs = await prisma.job.findMany({ where, select: { id: true } });
+    const jobIds = jobs.map((j) => j.id);
+
+    if (jobIds.length > 0) {
+      await prisma.tailoredResume.deleteMany({
+        where: { jobId: { in: jobIds } },
+      });
+    }
+
+    const deleteResult = await prisma.job.deleteMany({ where });
+    res.json({ success: true, count: deleteResult.count, message: `Successfully cleared ${deleteResult.count} jobs.` });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/jobs/:id
 router.delete('/:id', async (req, res) => {
   try {

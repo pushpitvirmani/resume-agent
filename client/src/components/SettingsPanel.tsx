@@ -22,7 +22,24 @@ export const SettingsPanel: React.FC = () => {
   const [aiStatus, setAiStatus] = useState<AIStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [clearingJobs, setClearingJobs] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleClearAllJobs = async () => {
+    if (!window.confirm('Are you sure you want to delete all scraped job postings? This will remove all scraped jobs from your feed and dashboard.')) {
+      return;
+    }
+    try {
+      setClearingJobs(true);
+      const res = await api.clearAllJobs();
+      setToast({ type: 'success', message: res.message || 'All scraped jobs have been cleared.' });
+      setTimeout(() => setToast(null), 4000);
+    } catch (err: any) {
+      setToast({ type: 'error', message: err.message || 'Failed to clear scraped jobs' });
+    } finally {
+      setClearingJobs(false);
+    }
+  };
 
   // New guideline input
   const [newRule, setNewRule] = useState('');
@@ -319,6 +336,27 @@ export const SettingsPanel: React.FC = () => {
                   Run Headless Browser (Background, no visible window)
                 </label>
               </div>
+            </div>
+
+            {/* Clear Scraped Results Option */}
+            <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Clear All Scraped Results</span>
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Deletes all scraped job postings from the database for this profile.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearAllJobs}
+                disabled={clearingJobs}
+                className="px-3.5 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs font-semibold transition-all shrink-0 self-start sm:self-auto disabled:opacity-50"
+              >
+                {clearingJobs ? 'Clearing...' : 'Clear All Scraped Jobs'}
+              </button>
             </div>
           </div>
 

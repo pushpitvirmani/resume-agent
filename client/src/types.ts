@@ -119,6 +119,7 @@ export interface TailoredBulletDiff {
   original: string;
   tailored: string;
   changes?: string;
+  alternatives?: string[];
 }
 
 export interface TailoredExperienceItem {
@@ -126,19 +127,21 @@ export interface TailoredExperienceItem {
   company: string;
   role: string;
   location: string;
-  bullets: TailoredBulletDiff[];
+  bullets: (TailoredBulletDiff | string)[];
 }
 
 export interface TailoredContent {
   summary: string;
   experience: TailoredExperienceItem[];
   skills: Array<{ category: string; skills: string[] }>;
-  atsAnalysis: {
+  atsAnalysis?: {
     score: number;
     matchedKeywords: string[];
     missingKeywords: string[];
-    summaryFeedback: string;
+    summaryFeedback?: string;
   };
+  appliedSections?: string[];
+  appliedMap?: Record<string, string>;
 }
 
 export interface SuggestedGuideline {

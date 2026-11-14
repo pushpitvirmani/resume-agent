@@ -176,6 +176,15 @@ export const api = {
     return data.job;
   },
 
+  async clearAllJobs(): Promise<{ success: boolean; count: number; message: string }> {
+    const res = await fetch('/api/jobs', { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to clear jobs');
+    }
+    return res.json();
+  },
+
   // Scraper
   async getScraperStatus(): Promise<{ ok: boolean; status: import('../types').ScraperStatus }> {
     const res = await fetch('/api/scraper/status');

@@ -6,6 +6,7 @@ export interface TailoredBulletDiff {
   original: string;
   tailored: string;
   changes?: string;
+  alternatives?: string[];
 }
 
 export interface TailoredExperienceItem {
@@ -118,7 +119,12 @@ You MUST return a JSON object adhering to this EXACT schema:
         {
           "original": "Original bullet from master resume",
           "tailored": "**Bold Impact Hook:** Rewritten bullet with metrics and keywords",
-          "changes": "Brief explanation of how this was tailored to the JD"
+          "changes": "Brief explanation of how this was tailored to the JD",
+          "alternatives": [
+            "**Alternative 1 (Quantified Metrics Focus):** High-density metrics and scale variation",
+            "**Alternative 2 (Leadership & Strategy Focus):** Product strategy and roadmap variation",
+            "**Alternative 3 (Technical Execution Focus):** Architecture and execution variation"
+          ]
         }
       ]
     }
