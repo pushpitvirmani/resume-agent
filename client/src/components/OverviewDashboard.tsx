@@ -33,6 +33,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
   const [loading, setLoading] = useState(true);
   const [scraperStatus, setScraperStatus] = useState<ScraperStatus | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
   const pollTimerRef = useRef<any>(null);
 
   const loadData = async () => {
@@ -72,6 +73,23 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
       alert(`Download failed: ${err.message || 'Error creating file'}`);
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadPdf = async (opts: { type: 'master' | 'profile' | 'tailored'; id?: string; name: string }) => {
+    try {
+      setDownloadingPdfId(opts.id || opts.type);
+      if (opts.type === 'master') {
+        await api.exportPdf({ profileId: 'default' }, `${opts.name.replace(/\s+/g, '_')}_Resume.pdf`);
+      } else if (opts.type === 'profile') {
+        await api.exportPdf({ profileId: opts.id }, `${opts.name.replace(/\s+/g, '_')}_Resume.pdf`);
+      } else if (opts.type === 'tailored') {
+        await api.exportPdf({ jobId: opts.id }, `${opts.name.replace(/\s+/g, '_')}_Tailored_Resume.pdf`);
+      }
+    } catch (err: any) {
+      alert(`PDF download failed: ${err.message || 'Error generating PDF'}`);
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -285,6 +303,20 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
 
             <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
               <button
+                onClick={() => handleDownloadPdf({ type: 'master', name: resume?.name || 'Pushpit_Virmani' })}
+                disabled={downloadingPdfId === 'master'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                title="Download ATS-compliant 1-page PDF (.pdf)"
+              >
+                {downloadingPdfId === 'master' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span>PDF (.pdf)</span>
+              </button>
+
+              <button
                 onClick={() => handleDownloadDocx({ type: 'master', name: resume?.name || 'Pushpit_Virmani' })}
                 disabled={downloadingId === 'master'}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-all disabled:opacity-50"
@@ -300,11 +332,11 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
 
               <button
                 onClick={() => onNavigate('templates')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium transition-all"
-                title="Open in Resume Studio to print or export 1-page PDF"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition-all"
+                title="Open in Resume Studio to customize templates"
               >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print / PDF</span>
+                <Layers className="w-3.5 h-3.5" />
+                <span>Studio</span>
               </button>
 
               <button
@@ -344,6 +376,20 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
 
               <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
                 <button
+                  onClick={() => handleDownloadPdf({ type: 'profile', id: prof.id, name: prof.name })}
+                  disabled={downloadingPdfId === prof.id}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                  title="Download profile as 1-page PDF (.pdf)"
+                >
+                  {downloadingPdfId === prof.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>PDF (.pdf)</span>
+                </button>
+
+                <button
                   onClick={() => handleDownloadDocx({ type: 'profile', id: prof.id, name: prof.name })}
                   disabled={downloadingId === prof.id}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-all disabled:opacity-50"
@@ -359,11 +405,11 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
 
                 <button
                   onClick={() => onNavigate('templates')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-medium transition-all"
-                  title="Open in Resume Studio to print or export 1-page PDF"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition-all"
+                  title="Open in Resume Studio"
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Print / PDF</span>
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Studio</span>
                 </button>
               </div>
             </div>
@@ -396,6 +442,24 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
 
               <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
                 <button
+                  onClick={() => handleDownloadPdf({
+                    type: 'tailored',
+                    id: tailored.jobId,
+                    name: `${tailored.job?.company || 'Job'}_Resume`
+                  })}
+                  disabled={downloadingPdfId === tailored.jobId}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                  title="Download tailored 1-page PDF (.pdf)"
+                >
+                  {downloadingPdfId === tailored.jobId ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>PDF (.pdf)</span>
+                </button>
+
+                <button
                   onClick={() => handleDownloadDocx({
                     type: 'tailored',
                     id: tailored.jobId,
@@ -424,11 +488,11 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
 
                 <button
                   onClick={() => onNavigate('templates', tailored.jobId)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-all"
-                  title="Open in Resume Studio to print or export 1-page PDF"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium transition-all"
+                  title="Open in Resume Studio"
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Print / PDF</span>
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Studio</span>
                 </button>
               </div>
             </div>

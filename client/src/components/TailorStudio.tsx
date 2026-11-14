@@ -66,6 +66,7 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
   const [tailoring, setTailoring] = useState<boolean>(false);
   const [savingEdit, setSavingEdit] = useState<boolean>(false);
   const [exportingDocx, setExportingDocx] = useState<boolean>(false);
+  const [exportingPdf, setExportingPdf] = useState<boolean>(false);
 
   // Gemini Model Selection - strictly verified allowed models
   const [selectedModel, setSelectedModel] = useState<string>('gemini-3.1-flash-lite');
@@ -429,6 +430,18 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
     }
   };
 
+  const handleExportPdf = async () => {
+    if (!selectedJobId) return;
+    try {
+      setExportingPdf(true);
+      await api.exportPdf({ jobId: selectedJobId });
+    } catch (err: any) {
+      alert(`PDF Export failed: ${err.message || 'Error generating PDF'}`);
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -589,19 +602,35 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
           </button>
 
           {tailoredResume && (
-            <button
-              onClick={handleExportDocx}
-              disabled={exportingDocx}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
-              title="Download tailored Word document (.docx)"
-            >
-              {exportingDocx ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-              ) : (
-                <Download className="w-3.5 h-3.5 text-indigo-400" />
-              )}
-              <span>Word (.docx)</span>
-            </button>
+            <>
+              <button
+                onClick={handleExportPdf}
+                disabled={exportingPdf}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                title="Download tailored pure ATS PDF document (.pdf)"
+              >
+                {exportingPdf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span>PDF (.pdf)</span>
+              </button>
+
+              <button
+                onClick={handleExportDocx}
+                disabled={exportingDocx}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                title="Download tailored Word document (.docx)"
+              >
+                {exportingDocx ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-indigo-400" />
+                )}
+                <span>Word (.docx)</span>
+              </button>
+            </>
           )}
         </div>
       </header>

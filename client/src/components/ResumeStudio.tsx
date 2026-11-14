@@ -60,6 +60,7 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
   const [currentTailored, setCurrentTailored] = useState<TailoredResumeItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [exportingDocx, setExportingDocx] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const handleExportDocx = async () => {
     if (!renderable) return;
@@ -74,6 +75,22 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
       alert(`Export failed: ${err.message || 'Error generating DOCX'}`);
     } finally {
       setExportingDocx(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!renderable) return;
+    try {
+      setExportingPdf(true);
+      if (selectedSource !== 'master') {
+        await api.exportPdf({ jobId: selectedSource, profileId: activeProfileId });
+      } else {
+        await api.exportPdf({ resumeData: renderable, profileId: activeProfileId });
+      }
+    } catch (err: any) {
+      alert(`PDF Export failed: ${err.message || 'Error generating PDF'}`);
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -421,6 +438,21 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
             <span>Format & Bold Words</span>
           </button>
 
+          {/* Download PDF (.pdf) Button */}
+          <button
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all active:scale-95 disabled:opacity-50"
+            title="Download pure ATS 1-page PDF document (.pdf)"
+          >
+            {exportingPdf ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            <span>{exportingPdf ? 'Generating...' : 'PDF (.pdf)'}</span>
+          </button>
+
           {/* Download Word (.docx) Button */}
           <button
             onClick={handleExportDocx}
@@ -436,14 +468,14 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
             <span>{exportingDocx ? 'Generating...' : 'Word (.docx)'}</span>
           </button>
 
-          {/* Print / Export PDF Button */}
+          {/* Print / Browser Print Dialog Button */}
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all active:scale-95"
-            title="Print or Save as 1-Page PDF"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium transition-all"
+            title="Open browser print dialog (isolated resume sheet only)"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Print / PDF</span>
+            <span>Print</span>
           </button>
         </div>
       </header>
@@ -770,8 +802,9 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
             >
               {/* The Standard 8.5in x 11in Page Container (816px x 1056px at 96 DPI) */}
               <div
+                id="printable-resume"
                 ref={resumeContainerRef}
-                className="w-[816px] min-h-[1056px] bg-white text-slate-900 shadow-2xl rounded-sm print:shadow-none print:m-0 print:w-full relative transition-all"
+                className="printable-resume-sheet w-[816px] min-h-[1056px] bg-white text-slate-900 shadow-2xl rounded-sm print:shadow-none print:m-0 print:w-full relative transition-all"
                 style={{
                   fontFamily: options.fontFamily,
                 }}

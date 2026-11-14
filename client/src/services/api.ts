@@ -306,6 +306,39 @@ export const api = {
     document.body.removeChild(a);
   },
 
+  async exportPdf(
+    payload: { resumeData?: any; jobId?: string; profileId?: string },
+    defaultFilename: string = 'Pushpit_Virmani_Resume.pdf'
+  ): Promise<void> {
+    const res = await fetch('/api/export/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to generate PDF document');
+    }
+
+    const disposition = res.headers.get('Content-Disposition');
+    let filename = defaultFilename;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+
   async exportBatch(
     jobIds: string[],
     format: 'docx' | 'pdf' = 'docx'

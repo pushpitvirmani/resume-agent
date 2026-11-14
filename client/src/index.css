@@ -9,3 +9,89 @@ body {
   color: #f8fafc;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
+
+/* =========================================================================
+   PROPER ATS-COMPLIANT PRINT & PDF MEDIA STYLING
+   Isolates exclusively the resume document, removing all application UI.
+   ========================================================================= */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 8mm 10mm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide the entire application shell */
+  aside,
+  header,
+  nav,
+  button,
+  input,
+  select,
+  .print\\:hidden,
+  [data-print-hide],
+  .fixed,
+  .sticky {
+    display: none !important;
+  }
+
+  /* Reset main scroll and flex constraints */
+  #root,
+  .flex,
+  main {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Reset zoom transforms on canvas */
+  .origin-top,
+  [style*="scale"] {
+    transform: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* The actual resume sheet */
+  #printable-resume,
+  .printable-resume-sheet {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* Prevent broken bullets across page boundaries */
+  .resume-section-item,
+  article,
+  section,
+  li {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}

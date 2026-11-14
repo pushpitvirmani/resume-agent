@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { createRequire } from 'module';
 import prisma from '../db.js';
 import { generateResumeDocx, ExportResumeData } from '../services/docxExport.js';
+import { generateResumePdf } from '../services/pdfExport.js';
 
 const require = createRequire(import.meta.url);
 const archiver = require('archiver');
@@ -169,6 +170,23 @@ router.post('/docx', async (req, res) => {
   }
 });
 
+// POST /api/export/pdf - Export Single Resume as ATS-optimized 1-page .pdf
+router.post('/pdf', async (req, res) => {
+  try {
+    const { data, filenameBase } = await resolveExportData(req.body);
+    const buffer = await generateResumePdf(data);
+
+    const filename = `${filenameBase}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  } catch (error: any) {
+    console.error('Error generating PDF export:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate PDF export' });
+  }
+});
+
 // POST /api/export/batch - Export Multiple Resumes into a single .zip
 router.post('/batch', async (req, res) => {
   try {
@@ -199,9 +217,15 @@ router.post('/batch', async (req, res) => {
       const jId = jobIds[i];
       try {
         const { data, filenameBase } = await resolveExportData({ jobId: jId });
-        const docxBuffer = await generateResumeDocx(data);
-        const entryName = `${String(i + 1).padStart(2, '0')}_${filenameBase}.docx`;
-        archive.append(docxBuffer, { name: entryName });
+        if (format === 'pdf') {
+          const pdfBuffer = await generateResumePdf(data);
+          const entryName = `${String(i + 1).padStart(2, '0')}_${filenameBase}.pdf`;
+          archive.append(pdfBuffer, { name: entryName });
+        } else {
+          const docxBuffer = await generateResumeDocx(data);
+          const entryName = `${String(i + 1).padStart(2, '0')}_${filenameBase}.docx`;
+          archive.append(docxBuffer, { name: entryName });
+        }
       } catch (err) {
         console.warn(`Skipping job ${jId} in batch export due to error:`, err);
       }
