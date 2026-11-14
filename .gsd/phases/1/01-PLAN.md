@@ -21,8 +21,8 @@ gap_closure: false
 must_haves:
   truths:
     - "Root project and Express backend scaffold initialize and boot cleanly on Windows"
-    - "SQLite database schema is created via Prisma with models for MasterResume, Job, TailoredResume, and ResumeGuideline"
-    - "Database seed script successfully inserts a rich default FAANG/AI PM master resume profile and baseline guidelines"
+    - "SQLite database schema is created via Prisma with models for MasterResume, Job, TailoredResume, ResumeGuideline, and AppSettings"
+    - "Database seed script successfully inserts a rich default FAANG/AI PM master resume profile, baseline guidelines, and default scraper settings (max 25 jobs, past_week date filter)"
   artifacts:
     - "package.json"
     - "server/package.json"
@@ -36,7 +36,7 @@ must_haves:
 # Plan 1.1: Application Scaffold & Data Persistence Foundation
 
 ## Objective
-Establish the project workspace architecture for the local personal web app with Node.js, Express, TypeScript, and Prisma with SQLite. Define typed relational schemas for the Master Resume profile (contact, summary, experience, projects, skills, education), Job postings, and Learned Resume Guidelines (`ResumeGuideline`). Execute the initial migration and seed script with a comprehensive default Product Management profile and baseline guidelines.
+Establish the project workspace architecture for the local personal web app with Node.js, Express, TypeScript, and Prisma with SQLite. Define typed relational schemas for the Master Resume profile (contact, summary, experience, projects, skills, education), Job postings, Learned Resume Guidelines (`ResumeGuideline`), and Application Settings (`AppSettings` storing scraper limits, date-from cutoff, and schedule). Execute the initial migration and seed script.
 
 ## Context
 Load these files for context:
@@ -44,6 +44,7 @@ Load these files for context:
 - .gsd/REQUIREMENTS.md
 - .gsd/ROADMAP.md
 - .gsd/DECISIONS.md
+- PROJECT_RULES.md
 
 ## Tasks
 
@@ -102,7 +103,7 @@ Load these files for context:
     server/prisma/seed.ts
   </files>
   <action>
-    Define data persistence for Master Resume, Jobs, and Learned Guidelines using Prisma with SQLite:
+    Define data persistence for Master Resume, Jobs, Learned Guidelines, and Settings using Prisma with SQLite:
     1. Create `server/prisma/schema.prisma`:
        - Datasource `db` using `provider = "sqlite"` and `url = env("DATABASE_URL")`.
        - Generator `client` using `provider = "prisma-client-js"`.
@@ -132,6 +133,7 @@ Load these files for context:
          - `status` (String @default("discovered")) // discovered, tailoring, applied, archived
          - `matchScore` (Float?)
          - `keywords` (String?) // JSON serialized string[]
+         - `postedDate` (DateTime?) // original posting date extracted from job
          - `createdAt` (DateTime @default(now()))
          - `updatedAt` (DateTime @updatedAt)
        - Model `TailoredResume`:
@@ -150,6 +152,17 @@ Load these files for context:
          - `active` (Boolean @default(true))
          - `createdAt` (DateTime @default(now()))
          - `updatedAt` (DateTime @updatedAt)
+       - Model `AppSettings`:
+         - `id` (String @id @default("default"))
+         - `activeAiProvider` (String @default("gemini"))
+         - `dailyScheduleCron` (String @default("0 9 * * *"))
+         - `maxScrapeJobs` (Int @default(25)) // user-configurable postings limit
+         - `scrapeDateFrom` (DateTime?) // scrape postings on or after this date
+         - `dateFilterPreset` (String @default("past_week")) // past_24h, past_week, past_month, custom
+         - `keywords` (String @default("Product Manager"))
+         - `location` (String @default("Remote"))
+         - `headless` (Boolean @default(true))
+         - `updatedAt` (DateTime @updatedAt)
     2. Create `server/src/db.ts` initializing and exporting a PrismaClient singleton instance.
     3. Create `server/src/types/resume.ts` with TypeScript interfaces and Zod schemas:
        - `ExperienceItem`: id, company, role, location, startDate, endDate, isCurrent, bullets (string[])
@@ -157,21 +170,24 @@ Load these files for context:
        - `SkillCategory`: category (e.g. "Product Strategy", "AI & Machine Learning", "Analytics & Tech"), skills (string[])
        - `EducationItem`: id, institution, degree, fieldOfStudy, graduationYear, honors
        - `ResumeGuidelineItem`: id, rule, category, active, createdAt
+       - `AppSettingsItem`: id, activeAiProvider, dailyScheduleCron, maxScrapeJobs, scrapeDateFrom, dateFilterPreset, keywords, location, headless
        - `MasterResumeProfile`: full typed profile matching the parsed fields
        - `resumeProfileSchema`: Zod schema validating input before database save.
+       - `settingsSchema`: Zod schema validating scraper limits and date filters.
     4. Create `server/prisma/seed.ts` that:
-       - Checks if a `MasterResume` record exists. If not, inserts a comprehensive FAANG/AI startup Senior Product Manager profile with realistic metrics, high-impact bullet points, technical skill categories, and top-tier education.
-       - Inserts baseline guidelines into `ResumeGuideline` table (e.g. "Always quantify achievements with business impact, revenue, or efficiency percentages", "Keep bullet points concise and action-verb initiated").
+       - Checks if a `MasterResume` record exists. If not, inserts a comprehensive FAANG/AI startup Senior Product Manager profile.
+       - Inserts baseline guidelines into `ResumeGuideline` table.
+       - Upserts default `AppSettings` with `maxScrapeJobs: 25`, `dateFilterPreset: "past_week"`.
     5. Run `npx prisma db push` to initialize the SQLite database file (`server/dev.db`) and run `npx tsx prisma/seed.ts`.
 
     AVOID: Relying on native node-gyp compilation drivers that fail on Windows machines; USE Prisma's bundled precompiled Rust query engine.
-    USE: Typed JSON serialization for complex nested sections (experience bullets, skills) to provide both SQL queryability and flexible nested resume structures.
+    USE: Typed JSON serialization for complex nested sections to provide both SQL queryability and flexible nested resume structures.
   </action>
   <verify>
     cd server && npx prisma db push && npx tsx prisma/seed.ts
   </verify>
   <done>
-    `dev.db` is created in `server/`, Prisma client is generated, and seed script completes with confirmation that master resume profile and baseline guidelines were inserted.
+    `dev.db` is created in `server/`, Prisma client is generated, and seed script completes with confirmation that master resume profile, baseline guidelines, and AppSettings were inserted.
   </done>
 </task>
 
@@ -179,8 +195,8 @@ Load these files for context:
 
 ## Must-Haves
 After all tasks complete, verify:
-- [ ] SQLite database is created at `server/dev.db` with tables for `MasterResume`, `Job`, `TailoredResume`, and `ResumeGuideline`
-- [ ] PrismaClient singleton can read the seeded master resume profile and guidelines
+- [ ] SQLite database is created at `server/dev.db` with tables for `MasterResume`, `Job`, `TailoredResume`, `ResumeGuideline`, and `AppSettings`
+- [ ] PrismaClient singleton can read the seeded master resume profile, guidelines, and app settings
 - [ ] Server starts without runtime errors via `tsx src/index.ts`
 
 ## Success Criteria
