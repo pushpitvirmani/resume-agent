@@ -24,15 +24,19 @@ function formatMarkdownBullets(text: string): string {
   return escaped.replace(/\*\*([^*]+)\*\*/g, '<strong class="metric-bold">$1</strong>');
 }
 
-// Find Chrome or Edge executable on the system
+// Find Chrome or Edge executable on the system (Windows and Linux/Docker)
 function findBrowserExecutable(): string {
   const candidates = [
+    process.env.CHROME_BIN,
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
     'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-    process.env.CHROME_BIN,
-    process.env.PUPPETEER_EXECUTABLE_PATH,
   ].filter(Boolean) as string[];
 
   for (const p of candidates) {

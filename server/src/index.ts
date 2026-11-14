@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import resumeRouter from './routes/resume.js';
@@ -44,6 +45,16 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Serve frontend client in production
+const clientDistPath = path.resolve(__dirname, '../../../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
 
 if (process.env.NODE_ENV !== 'test' && !process.argv.includes('--test-run') && !process.env.IN_TEST) {
   initScheduler().catch(console.error);
