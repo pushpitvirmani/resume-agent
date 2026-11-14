@@ -5,8 +5,8 @@ wave: 2
 depends_on:
   - "01-PLAN.md"
 files_modified:
-  - server/src/services/gemini.ts
-  - server/src/routes/gemini.ts
+  - server/src/services/ai.ts
+  - server/src/routes/ai.ts
   - server/src/routes/resume.ts
   - server/src/routes/jobs.ts
   - server/src/index.ts
@@ -14,38 +14,43 @@ files_modified:
 autonomous: true
 gap_closure: false
 user_setup:
-  - service: gemini
+  - service: ai-providers
     why: "AI resume tailoring, keyword extraction, and ATS scoring"
     env_vars:
       - name: GEMINI_API_KEY
-        source: "Google AI Studio (https://aistudio.google.com/app/apikey)"
+        source: "Google AI Studio (https://aistudio.google.com/app/apikey) - Primary"
+      - name: ANTHROPIC_API_KEY
+        source: "Anthropic Console (https://console.anthropic.com/) - Optional"
+      - name: OPENAI_API_KEY
+        source: "OpenAI Platform (https://platform.openai.com/api-keys) - Optional"
 
 must_haves:
   truths:
-    - "GET /api/gemini/status returns structured connection info without crashing when API key is missing or valid"
+    - "GET /api/ai/status returns structured connection info for Gemini, Claude, and GPT without crashing"
     - "GET /api/resume returns the structured master resume profile with parsed arrays for experience and skills"
     - "PUT /api/resume validates payload against schema and updates the database record"
     - "POST /api/resume/upload accepts PDF/DOCX files, parses text, and populates master resume"
     - "POST /api/jobs and GET /api/jobs create and list job postings"
     - "Automated API tests pass, validating all CRUD endpoints"
   artifacts:
-    - "server/src/services/gemini.ts"
-    - "server/src/routes/gemini.ts"
+    - "server/src/services/ai.ts"
+    - "server/src/routes/ai.ts"
     - "server/src/routes/resume.ts"
     - "server/src/routes/jobs.ts"
     - "server/tests/api.test.ts"
 ---
 
-# Plan 1.2: Gemini API Client Integration & Master Resume REST APIs
+# Plan 1.2: Multi-Model AI Engine Client & Master Resume REST APIs
 
 ## Objective
-Implement the Gemini API integration wrapper with error resilience and connection health monitoring, alongside RESTful API endpoints for managing the Master Resume profile (retrieve, update with Zod validation, reset to seed, and PDF/DOCX file upload parser) and baseline Job records. Provide an automated test suite verifying data roundtrip and API behavior.
+Implement the Multi-Model AI integration service (supporting Google Gemini as default, alongside Anthropic Claude and OpenAI GPT) with connection health monitoring and model switching, alongside RESTful API endpoints for managing the Master Resume profile (retrieve, update with Zod validation, reset to seed, and PDF/DOCX file upload parser) and baseline Job records. Provide an automated test suite verifying data roundtrip and API behavior.
 
 ## Context
 Load these files for context:
 - .gsd/SPEC.md
 - .gsd/REQUIREMENTS.md
 - .gsd/ROADMAP.md
+- .gsd/DECISIONS.md
 - server/prisma/schema.prisma
 - server/src/db.ts
 - server/src/types/resume.ts
@@ -53,34 +58,38 @@ Load these files for context:
 ## Tasks
 
 <task type="auto">
-  <name>Implement Gemini API Client Service & Status Endpoint</name>
+  <name>Implement Multi-Model AI Service (Gemini, Claude, GPT) & Status Endpoint</name>
   <files>
-    server/src/services/gemini.ts
-    server/src/routes/gemini.ts
+    server/src/services/ai.ts
+    server/src/routes/ai.ts
     server/src/index.ts
   </files>
   <action>
-    Create a resilient Google Gemini API service layer and status check endpoint:
-    1. Create `server/src/services/gemini.ts`:
-       - Use `@google/genai` (or `@google/generative-ai`) to initialize the client using `process.env.GEMINI_API_KEY`.
-       - Implement `checkGeminiConnection(): Promise<{ connected: boolean; model: string; message: string }>`:
-         - If `process.env.GEMINI_API_KEY` is undefined or empty string: return `{ connected: false, model: "none", message: "GEMINI_API_KEY is not configured in .env" }`. Do not throw an exception.
-         - If key is present: send a minimal ping prompt (`"Hello"`) to model `gemini-2.5-flash` (or fallback `gemini-1.5-flash`). If successful, return `{ connected: true, model: "gemini-2.5-flash", message: "Connected to Gemini API" }`.
-         - On API error (invalid key, rate limit, network): catch error and return `{ connected: false, model: "gemini-2.5-flash", message: error.message }`.
-       - Implement `generateText(prompt: string, systemInstruction?: string): Promise<string>`:
-         - Method to be used in Phase 3 for tailoring resumes and evaluating ATS scores.
-    2. Create `server/src/routes/gemini.ts`:
-       - Mount `GET /api/gemini/status` which calls `checkGeminiConnection()` and returns 200 with the result JSON.
-    3. Mount `/api/gemini` in `server/src/index.ts`.
+    Create a resilient multi-provider AI service layer supporting Gemini, Claude, and GPT:
+    1. Create `server/src/services/ai.ts`:
+       - Define supported providers: `'gemini'` (default), `'claude'`, `'openai'`.
+       - Read keys from environment: `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`.
+       - Implement `checkAIStatus(provider?: string): Promise<{ activeProvider: string; providers: Record<string, { configured: boolean; model: string; connected: boolean; message: string }> }>`:
+         - Tests the configured provider with a minimal ping without crashing if any key is missing.
+         - Default model for Gemini: `gemini-2.5-flash` (or `gemini-1.5-flash`).
+         - Default model for Claude: `claude-3-5-sonnet-20241022` (or `claude-3-5-haiku-20241022`).
+         - Default model for OpenAI: `gpt-4o` (or `gpt-4o-mini`).
+       - Implement unified `generateText(prompt: string, systemInstruction?: string, providerOverride?: string): Promise<string>`:
+         - Routes prompt to the active provider SDK.
+    2. Create `server/src/routes/ai.ts`:
+       - Mount `GET /api/ai/status` which calls `checkAIStatus()` and returns 200 with provider connection statuses.
+       - Mount `GET /api/gemini/status` as a backward-compatible alias.
+       - Mount `POST /api/ai/select` accepting `{ provider: 'gemini' | 'claude' | 'openai' }` to switch the active runtime model.
+    3. Mount `/api/ai` and `/api/gemini` in `server/src/index.ts`.
 
-    AVOID: Throwing unhandled exceptions during startup when `GEMINI_API_KEY` is not set; USE graceful error catching and status indicators so the application runs offline or before user setup.
-    USE: `gemini-2.5-flash` as primary model for low latency and high quality ATS/resume processing.
+    AVOID: Crashing during boot when API keys are absent; USE safe error boundaries returning `{ configured: false }`.
+    USE: `gemini-2.5-flash` as primary default provider.
   </action>
   <verify>
-    cd server && npx tsx -e "import { checkGeminiConnection } from './src/services/gemini.js'; checkGeminiConnection().then(r => console.log('Gemini check:', r))"
+    cd server && npx tsx -e "import { checkAIStatus } from './src/services/ai.js'; checkAIStatus().then(r => console.log('AI status check:', r))"
   </verify>
   <done>
-    `checkGeminiConnection()` completes safely without crashing, returning an informative status object whether API key is provided or omitted.
+    `checkAIStatus()` runs safely and outputs status for Gemini, Claude, and OpenAI without unhandled exceptions.
   </done>
 </task>
 
@@ -129,7 +138,7 @@ Load these files for context:
          2. `PUT /api/resume` updates candidate name and summary, and subsequent `GET /api/resume` returns the updated values.
          3. `PUT /api/resume` with invalid email/payload returns 400 Bad Request.
          4. `POST /api/jobs` creates a test job posting and `GET /api/jobs` retrieves it.
-         5. `GET /api/gemini/status` responds with 200.
+         5. `GET /api/ai/status` responds with 200.
 
     AVOID: Returning raw unparsed JSON strings to the client; USE parsed typed objects so the frontend receives ready-to-consume arrays and objects.
     USE: Explicit Zod schema validation on PUT requests to ensure SQLite never stores corrupted or malformed resume structures.
@@ -149,7 +158,7 @@ After all tasks complete, verify:
 - [ ] `GET /api/resume` returns the parsed master resume profile
 - [ ] `PUT /api/resume` updates the profile and persists to SQLite
 - [ ] `POST /api/resume/upload` parses uploaded resume file
-- [ ] `GET /api/gemini/status` returns status without crashing
+- [ ] `GET /api/ai/status` returns status without crashing
 - [ ] All automated tests in `server/tests/api.test.ts` pass
 
 ## Success Criteria

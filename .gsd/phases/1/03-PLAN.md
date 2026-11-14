@@ -16,20 +16,24 @@ files_modified:
   - client/src/App.tsx
   - client/src/components/Sidebar.tsx
   - client/src/components/Header.tsx
+  - client/src/components/OverviewDashboard.tsx
   - client/src/components/MasterResumeEditor.tsx
   - client/src/components/ExperienceEditor.tsx
   - client/src/components/ResumeUploadDropzone.tsx
-  - client/src/components/JobsFeedPlaceholder.tsx
+  - client/src/components/JobsFeedPanel.tsx
+  - client/src/components/SettingsPanel.tsx
 autonomous: true
 gap_closure: false
 
 must_haves:
   truths:
+    - "User can navigate between all 5 panel sections: Overview, Job Feed, Tailor Studio, Resume Builder, and Settings"
+    - "Overview Dashboard displays key metric cards, 'Scrape Now' trigger, and Master Resume status"
+    - "Job Feed includes a targeted keyword search bar to prevent random scraping"
     - "User can view and edit their master resume profile (contact, summary, experience bullets, projects, skills, education) in the web UI"
     - "User can drag-and-drop or select an existing PDF/DOCX resume file to automatically parse and populate fields"
+    - "Settings panel allows inspecting and switching active AI model (Gemini, Claude, GPT) and testing connections"
     - "Saving changes sends a validated PUT request to the backend and updates the SQLite database"
-    - "Reloading the page shows the persisted edits from the database"
-    - "Dashboard header displays real-time Gemini API connection status badge"
     - "Client build passes cleanly with zero TypeScript or Tailwind compilation errors"
   artifacts:
     - "client/package.json"
@@ -37,29 +41,32 @@ must_haves:
     - "client/src/services/api.ts"
     - "client/src/components/Sidebar.tsx"
     - "client/src/components/Header.tsx"
+    - "client/src/components/OverviewDashboard.tsx"
     - "client/src/components/MasterResumeEditor.tsx"
-    - "client/src/components/ExperienceEditor.tsx"
     - "client/src/components/ResumeUploadDropzone.tsx"
+    - "client/src/components/JobsFeedPanel.tsx"
+    - "client/src/components/SettingsPanel.tsx"
 ---
 
-# Plan 1.3: Frontend Dashboard Shell & Master Resume Editor UI
+# Plan 1.3: 5-Section Dashboard Panel & Master Resume Studio UI
 
 ## Objective
-Build the responsive React + Vite + Tailwind CSS dashboard interface with application navigation, Gemini API status monitoring, and a comprehensive Master Resume profile editor fulfilling REQ-03. Provide intuitive management for contact details, summary, role-by-role bullet points, technical skills, and education, complete with one-click PDF/DOCX file upload parsing and real-time save feedback.
+Build the responsive React + Vite + Tailwind CSS web application interface with the agreed 5-section navigation panel: Overview Dashboard, LinkedIn Job Feed (with targeted keyword search), Tailor & Review Studio (prepared for Phase 3), Resume Builder & Template Studio (prepared for Phase 4), and Settings Center (LinkedIn session, scheduler, and Multi-model AI selector for Gemini, Claude, and GPT). Provide full Master Resume management with one-click PDF/DOCX file upload parsing and persistent SQLite storage.
 
 ## Context
 Load these files for context:
 - .gsd/SPEC.md
 - .gsd/REQUIREMENTS.md
 - .gsd/ROADMAP.md
+- .gsd/DECISIONS.md
 - server/src/types/resume.ts
 - server/src/routes/resume.ts
-- server/src/routes/gemini.ts
+- server/src/routes/ai.ts
 
 ## Tasks
 
 <task type="auto">
-  <name>Scaffold Vite + React + Tailwind Frontend & Dashboard Navigation Shell</name>
+  <name>Scaffold 5-Section Navigation Shell, Overview Dashboard & Settings Panel</name>
   <files>
     client/package.json
     client/tsconfig.json
@@ -71,49 +78,48 @@ Load these files for context:
     client/src/services/api.ts
     client/src/components/Sidebar.tsx
     client/src/components/Header.tsx
-    client/src/components/JobsFeedPlaceholder.tsx
+    client/src/components/OverviewDashboard.tsx
+    client/src/components/JobsFeedPanel.tsx
+    client/src/components/SettingsPanel.tsx
     client/src/App.tsx
   </files>
   <action>
-    Create the client project structure using Vite, React 18, TypeScript, Tailwind CSS, and Lucide React icons:
+    Create the client architecture using Vite, React 18, TypeScript, Tailwind CSS, and Lucide React icons:
     1. In `client/package.json`, set name to `client`, version `1.0.0`, `"type": "module"`, scripts:
        `"dev": "vite"`, `"build": "tsc && vite build"`, `"preview": "vite preview"`.
        Install dependencies: `react`, `react-dom`, `lucide-react`, `clsx`, `tailwind-merge`.
        Install devDependencies: `@types/react`, `@types/react-dom`, `@vitejs/plugin-react`, `vite`, `typescript`, `tailwindcss`, `postcss`, `autoprefixer`.
-    2. Configure `client/vite.config.ts` with React plugin and server proxy:
-       ```ts
-       server: {
-         port: 3000,
-         proxy: {
-           '/api': {
-             target: 'http://localhost:5000',
-             changeOrigin: true
-           }
-         }
-       }
-       ```
+    2. Configure `client/vite.config.ts` with React plugin and server proxy (`/api` -> `http://localhost:5000`).
     3. Configure `client/tailwind.config.js` and `client/postcss.config.js` with content scanning `./src/**/*.{ts,tsx}` and modern dark-mode ready slate theme.
     4. Create `client/src/types.ts` defining types matching the server:
-       - `ResumeProfile`, `ExperienceItem`, `ProjectItem`, `SkillCategory`, `EducationItem`, `CertificationItem`, `JobItem`, `GeminiStatus`.
+       - `ResumeProfile`, `ExperienceItem`, `ProjectItem`, `SkillCategory`, `EducationItem`, `CertificationItem`, `JobItem`, `AIStatusResponse`.
     5. Create `client/src/services/api.ts` exposing typed API calls:
        - `getResume(): Promise<ResumeProfile>`
        - `updateResume(data: ResumeProfile): Promise<{ profile: ResumeProfile; message: string }>`
        - `uploadResume(file: File): Promise<{ profile: ResumeProfile; message: string }>`
        - `resetResumeSeed(): Promise<{ profile: ResumeProfile; message: string }>`
-       - `getGeminiStatus(): Promise<{ connected: boolean; model: string; message: string }>`
+       - `getAIStatus(): Promise<AIStatusResponse>`
+       - `selectAIProvider(provider: string): Promise<{ success: boolean; activeProvider: string }>`
        - `getJobs(status?: string): Promise<JobItem[]>`
        - `createJob(job: Partial<JobItem>): Promise<JobItem>`
     6. Implement shell layout:
-       - `Sidebar.tsx`: Navigation items for "Master Resume", "Jobs Feed" (prepared for Phase 2), "AI Status / Settings" with active route indicator and sleek modern icons.
-       - `Header.tsx`: Title, subtitle, and dynamic Gemini API badge:
-         - Green badge: "Gemini API: Connected (gemini-2.5-flash)"
-         - Amber badge: "Gemini API: Key Missing (Configure in server/.env)"
-         - Red badge: "Gemini API: Connection Error"
-       - `JobsFeedPlaceholder.tsx`: Clean UI placeholder displaying discovered jobs count (fetching from `api.getJobs()`), a "Manual Add Job" modal/form for testing, and an indicator that automated scraping will be connected in Phase 2.
-       - `App.tsx`: Main layout assembling Sidebar, Header, and active tab view.
+       - `Sidebar.tsx`: 5 navigation links with clean modern icons:
+         1. "Overview" (`LayoutDashboard`)
+         2. "LinkedIn Jobs" (`Briefcase`)
+         3. "Tailor & Review" (`Sparkles` - Phase 3)
+         4. "Resume Studio" (`FileText` - Phase 4)
+         5. "Settings" (`Settings`)
+       - `Header.tsx`: Title, active route breadcrumb, and dynamic AI provider badge displaying active model (e.g., "Gemini: 2.5 Flash", "Claude: 3.5 Sonnet", "GPT: 4o") with connection status indicator.
+       - `OverviewDashboard.tsx`: Metric cards (Discovered Jobs, Tailored Resumes, Avg ATS Score, Next Scheduled Scrape), "Scrape Now" trigger button, quick link to Master Resume, and recent job feed table.
+       - `JobsFeedPanel.tsx`: Targeted keyword search bar (preventing random scrapes), filter pills (Product Manager titles, Location, Remote), split table view with JD preview drawer, and "Tailor Selected Resumes" action bar.
+       - `SettingsPanel.tsx`: 3 tabbed cards:
+         1. LinkedIn Session (cookie status indicator, session link, connection test)
+         2. Automation & Limits (schedule interval, max jobs per scrape, headless toggle)
+         3. AI Engine (Provider switcher between Gemini, Claude, and GPT with respective API key fields and live latency test)
+       - `App.tsx`: Main layout assembling Sidebar, Header, and active panel routing.
 
-    AVOID: Absolute backend URLs in client fetch calls; USE Vite proxy configuration with `/api` relative paths so local development works without CORS headaches.
-    USE: Lucide icons and Tailwind CSS utility classes for a clean, professional FAANG-grade dashboard appearance.
+    AVOID: Hardcoded static mockups; USE reactive hooks (`useState`, `useEffect`) and typed `api.ts` calls so all metric cards and status badges reflect real SQLite and API states.
+    USE: Professional FAANG-level UI styling with subtle borders, clean typography, and accessible contrast.
   </action>
   <verify>
     npm --prefix client run build
@@ -147,7 +153,7 @@ Load these files for context:
             - List of work experience cards.
             - "Add Experience" button.
             - Each card: Company name, Role title, Location, Start date, End date, "Current Role" toggle.
-            - Bullet Points sub-editor: Add bullet point, remove bullet point, and reorder. Each bullet has an input with character length indicator.
+            - Bullet Points sub-editor: Add bullet point, remove bullet point, and reorder. Each bullet has an input with character length indicator and metric badge ('%', '$', 'X').
          d) **Featured Projects**: Project title, role, tech stack/tools used, URL, and quantifiable impact bullets.
          e) **Core Skills**: Categorized skills (e.g. Product Strategy, AI & Machine Learning, Technical & Tools). Users can add new categories, add tags to categories, or remove tags.
          f) **Education & Certifications**: Institution, Degree, Field of study, Graduation year, Honors.
@@ -158,11 +164,11 @@ Load these files for context:
     3. Create `client/src/components/ExperienceEditor.tsx`:
        - Modular sub-component handling the list of experience items, role metadata inputs, and bullet point editing.
        - Ensures bullet points can be edited individually, deleted, or added dynamically.
-    4. Connect `MasterResumeEditor` into the "Master Resume" tab in `App.tsx`.
+    4. Connect `MasterResumeEditor` into the web app navigation in `App.tsx`.
     5. Provide user-friendly feedback on network errors or validation failures returned by the API.
 
     AVOID: In-place direct mutation of state arrays; USE immutable state update patterns or copy helpers when adding/updating/removing bullet points and array items.
-    USE: Clear visual distinctions for high-impact metric bullets (e.g. badge indicators for metrics '%', '$', 'X') to reinforce FAANG-level PM resume quality.
+    USE: Clear visual distinctions for high-impact metric bullets to reinforce FAANG-level PM resume quality.
   </action>
   <verify>
     npm --prefix client run build && cd server && npx tsx tests/api.test.ts
@@ -176,14 +182,17 @@ Load these files for context:
 
 ## Must-Haves
 After all tasks complete, verify:
+- [ ] User can navigate between all 5 panel sections: Overview, Job Feed, Tailor Studio, Resume Builder, and Settings
+- [ ] Overview Dashboard displays key metrics, "Scrape Now" trigger, and Master Resume status
+- [ ] Job Feed includes targeted keyword search bar to prevent random scraping
 - [ ] User can view their master resume profile in the web interface
 - [ ] User can upload an existing PDF/DOCX resume and view extracted fields populated in the editor
+- [ ] Settings panel allows inspecting and switching AI provider (Gemini, Claude, GPT)
 - [ ] User can add, edit, or remove experience bullet points and save changes to SQLite
 - [ ] Saved changes remain when the web page is reloaded
-- [ ] Header reflects Gemini API connection state
 - [ ] `npm --prefix client run build` passes with zero errors
 
 ## Success Criteria
 - [ ] All tasks verified passing
 - [ ] Must-haves confirmed
-- [ ] REQ-03 is completely satisfied with an interactive, verified UI and persistent local database storage
+- [ ] The web app panel architecture is completely aligned with the 5-section design agreed in grill-me

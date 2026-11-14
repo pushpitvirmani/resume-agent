@@ -69,4 +69,27 @@
 
 ---
 
+### [DECISION-008] Web App Panel Navigation & Information Architecture
+**Date**: 2026-11-14  
+**Status**: Accepted  
+- **Context**: The web application controls scraping, job review, resume editing, diff review, and ATS templates across multiple complex features.
+- **Decision**: Implement a 5-section sidebar layout:
+  1. **Overview Dashboard**: Key metrics (New Jobs, Tailored Count, Avg ATS Score, Next Run), instant "Scrape Now" trigger, recent matches, and Master Resume status.
+  2. **LinkedIn Job Feed**: Targeted keyword search bar (preventing random scrapes), filter pills (titles, location, remote, date), split-view table with JD reader drawer, and floating "Tailor Selected (N) Resumes" action bar.
+  3. **Tailor & Review Studio**: 3-column workspace with job tabs: Left column has JD & extracted ATS keywords; Center has side-by-side visual diff with direct editable text; Right column has conversational AI feedback chat + template selector + Export PDF/DOCX buttons.
+  4. **Resume Builder & Template Studio**: Dual-pane studio: Left pane with template selector gallery (FAANG Modern, Harvard Classic, AI Startup Minimalist, Wharton Tech) + collapsible section editors with metric badges; Right pane with live vector document preview + ATS gauge + Export buttons.
+  5. **Settings Center**: LinkedIn Session & Cookie manager, Scraper scheduler & limits, and Multi-model AI Engine selector.
+- **Rationale**: Clean, modular workflow preventing information overload and matching professional recruitment workflows.
+
+---
+
+### [DECISION-009] Multi-Model AI Engine (Gemini, Claude, GPT)
+**Date**: 2026-11-14  
+**Status**: Accepted  
+- **Context**: The user requested model flexibility with options for Claude, GPT, and Gemini.
+- **Decision**: Implement an AI provider abstraction layer supporting Google Gemini (`gemini-2.5-flash`), Anthropic Claude (`claude-3-5-sonnet`), and OpenAI GPT (`gpt-4o`/`gpt-4o-mini`) configurable in the Settings panel with individual API key fields and latency tests. Default provider is Gemini.
+- **Rationale**: Prevents vendor lock-in and complies with GSD Model Independence Rule.
+
+---
+
 *Last updated: 2026-11-14*
