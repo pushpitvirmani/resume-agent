@@ -7,21 +7,26 @@ updated: 2026-11-14T19:26:45+05:30
 ## Current Position
 
 **Milestone:** v1.0 (MVP)  
-**Phase:** 4 - ATS Template Studio & Resume Builder  
-**Status:** in_progress  
-**Plan:** 01-PLAN.md (Wave 1)  
+**Phase:** 4 - ATS Template Studio & Resume Builder (COMPLETE)  
+**Next Phase:** 5 - Export Engine (PDF & DOCX) & Batch Workflow Integration  
+**Status:** ready_for_planning  
+**Plan:** None  
 
 ## Last Action
 
-Planned Phase 4 completely:
-- 01-PLAN.md: ATS Template engine, Harshit Kumar reference archetype, Minimalist, and Executive Leader templates.
-- 02-PLAN.md: Resume Studio canvas, source toggling (Master vs. Job-Tailored), real-time styling controls, and 6-point ATS Compliance Evaluator.
+Executed Phase 4 across all plans:
+- 01-PLAN: ATS template engine with Harshit Kumar reference archetype (`HarshitTemplate.tsx`), Modern Minimalist (`MinimalistTemplate.tsx`), and Executive Leader (`ExecutiveTemplate.tsx`), supporting bold hooks, tracked headers, pipe-separated skills, and reactive typography/margins (`8d2c8ae`).
+- 02-PLAN: Full-featured `ResumeStudio.tsx` workspace with source toggling (Master vs. Job-Tailored), typography scaling, margin sliders, accent color palettes, US Letter print-dimensioned canvas, and 6-point `ATSScoreEvaluator.tsx` audit (`6f0e295`).
+- Client builds cleanly in 3.20s with zero errors (`npm --prefix client run build`).
+- All backend tests pass (`npm --prefix server test`).
 
 ## Next Steps
 
-1. Execute Plan 4.1: Build template components and Harshit reference archetype.
-2. Execute Plan 4.2: Build ResumeStudio workspace and ATS Compliance Evaluator.
-3. Verify Phase 4 completion.
+1. Run `/plan 5` to decompose Phase 5:
+   - Server-side and client-side high-fidelity PDF export matching ATS standards.
+   - Production DOCX generator with formatted typography, tables, and bold hooks using `docx` library.
+   - Batch export workflow (download tailored resumes for multiple queued jobs in one click).
+2. Execute Phase 5 plans.
 
 ## Active Decisions
 

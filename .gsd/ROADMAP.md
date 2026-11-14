@@ -9,7 +9,7 @@
 - [x] Master resume profile schema and storage
 - [x] Gemini API-driven JD analysis, keyword extraction, and bullet customization
 - [x] Side-by-side diff viewer with interactive feedback widget for iterative tweaks
-- [ ] FAANG/AI startup ATS-optimized resume template library
+- [x] FAANG/AI startup ATS-optimized resume template library
 - [x] ATS score evaluation breakdown
 - [ ] Dual-format export engine (.pdf and .docx)
 
@@ -31,7 +31,7 @@
 **Requirements**: REQ-04, REQ-05, REQ-06  
 
 ### Phase 4: ATS Template Studio & Resume Builder
-**Status**: ⬜ Not Started  
+**Status**: ✅ Complete  
 **Objective**: Build the standalone resume builder studio with a curated library of FAANG/AI startup ATS templates, live template preview, and ATS keyword/score analyzer.  
 **Requirements**: REQ-07, REQ-08  
 
