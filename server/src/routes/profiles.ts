@@ -64,6 +64,7 @@ router.post('/', async (req, res) => {
           skills: defaultMaster.skills,
           education: defaultMaster.education,
           certifications: defaultMaster.certifications,
+          styling: defaultMaster.styling,
         },
       });
     }

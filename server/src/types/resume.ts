@@ -62,6 +62,15 @@ export interface MasterResumeProfile {
   education: EducationItem[];
   certifications?: CertificationItem[];
   activities?: ActivityItem[];
+  styling?: {
+    templateId?: string;
+    options?: {
+      fontFamily?: string;
+      fontSize?: string;
+      spacing?: string;
+      accentColor?: string;
+    };
+  };
   createdAt?: string;
   updatedAt?: string;
 }
@@ -117,6 +126,7 @@ export const resumeProfileSchema = z.object({
   education: z.array(educationItemSchema).default([]),
   certifications: z.array(z.any()).optional().default([]),
   activities: z.array(z.any()).optional().default([]),
+  styling: z.any().optional(),
 });
 
 export const settingsSchema = z.object({

@@ -18,6 +18,12 @@ const upload = multer({
 });
 
 function formatResumeResponse(record: any): MasterResumeProfile {
+  let parsedStyling = undefined;
+  if (record.styling) {
+    try {
+      parsedStyling = JSON.parse(record.styling);
+    } catch {}
+  }
   return {
     id: record.id,
     name: record.name,
@@ -32,6 +38,7 @@ function formatResumeResponse(record: any): MasterResumeProfile {
     skills: record.skills ? JSON.parse(record.skills) : [],
     education: record.education ? JSON.parse(record.education) : [],
     certifications: record.certifications ? JSON.parse(record.certifications) : [],
+    styling: parsedStyling,
     createdAt: record.createdAt?.toISOString(),
     updatedAt: record.updatedAt?.toISOString()
   };
@@ -100,6 +107,8 @@ router.put('/', async (req, res) => {
       ? await prisma.masterResume.findUnique({ where: { id: data.id } })
       : await prisma.masterResume.findFirst({ where: { profileId } });
 
+    const stylingStr = data.styling ? JSON.stringify(data.styling) : (existing?.styling || null);
+
     let updated;
     if (existing) {
       updated = await prisma.masterResume.update({
@@ -117,6 +126,7 @@ router.put('/', async (req, res) => {
           skills: JSON.stringify(data.skills),
           education: JSON.stringify(data.education),
           certifications: JSON.stringify(data.certifications || []),
+          styling: stylingStr,
         }
       });
     } else {
@@ -135,6 +145,7 @@ router.put('/', async (req, res) => {
           skills: JSON.stringify(data.skills),
           education: JSON.stringify(data.education),
           certifications: JSON.stringify(data.certifications || []),
+          styling: stylingStr,
         }
       });
     }

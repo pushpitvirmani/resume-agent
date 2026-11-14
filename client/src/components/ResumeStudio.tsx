@@ -31,9 +31,11 @@ import {
   ResumeProfile,
   JobItem,
   TailoredResumeItem,
+  TailoredContent,
   RenderableResume,
   TemplateId,
   TemplateStyleOptions,
+  ResumeStyling,
   ProfileItem
 } from '../types';
 import { ResumeDocument, TEMPLATES_CATALOG } from './templates';
@@ -152,6 +154,19 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
       setJobs(jobsList);
       setSelectedSource('master');
       setCurrentTailored(null);
+      if (res?.styling) {
+        if (res.styling.templateId) setTemplateId(res.styling.templateId);
+        if (res.styling.options) setOptions(res.styling.options);
+      } else {
+        setTemplateId('harshit');
+        setOptions({
+          fontFamily: 'Inter',
+          fontSize: 'standard',
+          spacing: 'standard',
+          accentColor: '#0f172a',
+        });
+      }
+      setHasUnsavedChanges(false);
     } catch (err) {
       console.error('Failed to load resume or jobs:', err);
     } finally {
@@ -171,6 +186,14 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
       api.getTailoredResumeByJob(preselectedJobId).then((res) => {
         if (res.ok && res.tailoredResume) {
           setCurrentTailored(res.tailoredResume);
+          const tailoredStyling = res.tailoredResume.content?.styling;
+          if (tailoredStyling?.templateId) {
+            setTemplateId(tailoredStyling.templateId);
+          }
+          if (tailoredStyling?.options) {
+            setOptions(tailoredStyling.options);
+          }
+          setHasUnsavedChanges(false);
         }
       }).catch(console.error);
     }
@@ -181,11 +204,45 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
     setSelectedSource(val);
     if (val === 'master') {
       setCurrentTailored(null);
+      if (masterResume?.styling) {
+        if (masterResume.styling.templateId) setTemplateId(masterResume.styling.templateId);
+        if (masterResume.styling.options) setOptions(masterResume.styling.options);
+      } else {
+        setTemplateId('harshit');
+        setOptions({
+          fontFamily: 'Inter',
+          fontSize: 'standard',
+          spacing: 'standard',
+          accentColor: '#0f172a',
+        });
+      }
+      setHasUnsavedChanges(false);
     } else {
       try {
         const res = await api.getTailoredResumeByJob(val);
         if (res.ok && res.tailoredResume) {
           setCurrentTailored(res.tailoredResume);
+          const tailoredStyling = res.tailoredResume.content?.styling;
+          if (tailoredStyling?.templateId) {
+            setTemplateId(tailoredStyling.templateId);
+          } else if (masterResume?.styling?.templateId) {
+            setTemplateId(masterResume.styling.templateId);
+          } else {
+            setTemplateId('harshit');
+          }
+          if (tailoredStyling?.options) {
+            setOptions(tailoredStyling.options);
+          } else if (masterResume?.styling?.options) {
+            setOptions(masterResume.styling.options);
+          } else {
+            setOptions({
+              fontFamily: 'Inter',
+              fontSize: 'standard',
+              spacing: 'standard',
+              accentColor: '#0f172a',
+            });
+          }
+          setHasUnsavedChanges(false);
         } else {
           setCurrentTailored(null);
         }
@@ -372,13 +429,35 @@ export const ResumeStudio: React.FC<ResumeStudioProps> = ({ preselectedJobId }) 
     if (!masterResume) return;
     try {
       setSavingStudio(true);
+      const currentStyling: ResumeStyling = {
+        templateId,
+        options,
+      };
+
       if (selectedSource === 'master') {
-        await api.updateResume(masterResume, activeProfileId);
+        const updatedProfile: ResumeProfile = {
+          ...masterResume,
+          styling: currentStyling,
+        };
+        const res = await api.updateResume(updatedProfile, activeProfileId);
+        setMasterResume(res.profile || updatedProfile);
       } else if (currentTailored) {
-        await api.updateTailoredResume(currentTailored.id, currentTailored.content);
+        const updatedContent: TailoredContent = {
+          ...currentTailored.content,
+          styling: currentStyling,
+        };
+        const res = await api.updateTailoredResume(currentTailored.id, updatedContent);
+        if (res?.tailoredResume) {
+          setCurrentTailored(res.tailoredResume);
+        } else {
+          setCurrentTailored({
+            ...currentTailored,
+            content: updatedContent,
+          });
+        }
       }
       setHasUnsavedChanges(false);
-      setToastMessage('Resume Studio changes saved successfully to database!');
+      setToastMessage('Resume Studio changes and styling saved successfully to database!');
       setTimeout(() => setToastMessage(null), 4000);
     } catch (err: any) {
       alert(`Failed to save changes: ${err.message || 'Error updating resume'}`);

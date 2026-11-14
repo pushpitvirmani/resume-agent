@@ -41,6 +41,36 @@ async function runTests() {
     }
     console.log('✓ PUT /api/resume passed');
 
+    // 3b. Test Resume Styling Persistence
+    const stylingProfile = {
+      ...updateData.profile,
+      styling: {
+        templateId: 'ivyleague',
+        options: {
+          fontFamily: 'Garamond',
+          fontSize: 'compact',
+          spacing: 'compact',
+          accentColor: '#1c1917'
+        }
+      }
+    };
+    const stylingUpdateRes = await fetch(`${BASE_URL}/api/resume`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(stylingProfile)
+    });
+    const stylingUpdateData = await stylingUpdateRes.json();
+    if (stylingUpdateData.profile?.styling?.templateId !== 'ivyleague') {
+      throw new Error(`Expected templateId ivyleague, got: ${stylingUpdateData.profile?.styling?.templateId}`);
+    }
+    // Verify GET persists styling
+    const getStylingRes = await fetch(`${BASE_URL}/api/resume`);
+    const getStylingData = await getStylingRes.json();
+    if (getStylingData.profile?.styling?.options?.fontFamily !== 'Garamond') {
+      throw new Error(`Expected fontFamily Garamond, got: ${getStylingData.profile?.styling?.options?.fontFamily}`);
+    }
+    console.log('✓ Resume Styling persistence verified (templateId: ivyleague, font: Garamond)');
+
     // 4. Test Master Resume PUT Validation (Invalid email)
     const invalidRes = await fetch(`${BASE_URL}/api/resume`, {
       method: 'PUT',

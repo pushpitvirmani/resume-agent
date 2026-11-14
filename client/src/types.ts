@@ -45,6 +45,11 @@ export interface ActivityItem {
   description: string;
 }
 
+export interface ResumeStyling {
+  templateId: TemplateId;
+  options: TemplateStyleOptions;
+}
+
 export interface ResumeProfile {
   id?: string;
   name: string;
@@ -60,6 +65,7 @@ export interface ResumeProfile {
   education: EducationItem[];
   certifications?: CertificationItem[];
   activities?: ActivityItem[];
+  styling?: ResumeStyling;
 }
 
 export interface ResumeGuideline {
@@ -142,6 +148,7 @@ export interface TailoredContent {
   };
   appliedSections?: string[];
   appliedMap?: Record<string, string>;
+  styling?: ResumeStyling;
 }
 
 export interface SuggestedGuideline {
