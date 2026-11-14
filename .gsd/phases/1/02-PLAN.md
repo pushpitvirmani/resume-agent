@@ -25,6 +25,7 @@ must_haves:
     - "GET /api/gemini/status returns structured connection info without crashing when API key is missing or valid"
     - "GET /api/resume returns the structured master resume profile with parsed arrays for experience and skills"
     - "PUT /api/resume validates payload against schema and updates the database record"
+    - "POST /api/resume/upload accepts PDF/DOCX files, parses text, and populates master resume"
     - "POST /api/jobs and GET /api/jobs create and list job postings"
     - "Automated API tests pass, validating all CRUD endpoints"
   artifacts:
@@ -38,7 +39,7 @@ must_haves:
 # Plan 1.2: Gemini API Client Integration & Master Resume REST APIs
 
 ## Objective
-Implement the Gemini API integration wrapper with error resilience and connection health monitoring, alongside RESTful API endpoints for managing the Master Resume profile (retrieve, update with Zod validation, reset to seed) and baseline Job records. Provide an automated test suite verifying data roundtrip and API behavior.
+Implement the Gemini API integration wrapper with error resilience and connection health monitoring, alongside RESTful API endpoints for managing the Master Resume profile (retrieve, update with Zod validation, reset to seed, and PDF/DOCX file upload parser) and baseline Job records. Provide an automated test suite verifying data roundtrip and API behavior.
 
 ## Context
 Load these files for context:
@@ -84,7 +85,7 @@ Load these files for context:
 </task>
 
 <task type="auto">
-  <name>Build Master Resume & Jobs REST Endpoints with Automated Tests</name>
+  <name>Build Master Resume & Jobs REST Endpoints with File Parser & Automated Tests</name>
   <files>
     server/src/routes/resume.ts
     server/src/routes/jobs.ts
@@ -92,7 +93,7 @@ Load these files for context:
     server/tests/api.test.ts
   </files>
   <action>
-    Implement RESTful endpoints for Master Resume management and Jobs baseline, backed by Prisma and validated with Zod:
+    Implement RESTful endpoints for Master Resume management, PDF/DOCX ingestion, and Jobs baseline, backed by Prisma and validated with Zod:
     1. Create `server/src/routes/resume.ts`:
        - `GET /api/resume`:
          - Find the first `MasterResume` record. If none exists, automatically call seed helper and return the seeded profile.
@@ -105,6 +106,11 @@ Load these files for context:
        - `POST /api/resume/seed`:
          - Reset or overwrite master resume with the rich default PM profile.
          - Return 200 with `{ profile: seededProfile, message: "Master resume reset to default profile" }`.
+       - `POST /api/resume/upload`:
+         - Use `multer` memory storage to accept single file with field name `"resume"` (`.pdf`, `.docx`, `.txt`).
+         - Extract raw text using `pdf-parse` (for PDF) or `mammoth` (for DOCX).
+         - Parse extracted text into structured `MasterResumeProfile` JSON (extracting name, contact, summary, work experience bullets, skills, education).
+         - Upsert into `MasterResume` and return 200 with `{ profile: parsedProfile, message: "Resume parsed and imported successfully" }`.
     2. Create `server/src/routes/jobs.ts`:
        - `GET /api/jobs`:
          - Query all Job records ordered by `createdAt` desc. Support optional query param `?status=discovered`.
@@ -142,6 +148,7 @@ Load these files for context:
 After all tasks complete, verify:
 - [ ] `GET /api/resume` returns the parsed master resume profile
 - [ ] `PUT /api/resume` updates the profile and persists to SQLite
+- [ ] `POST /api/resume/upload` parses uploaded resume file
 - [ ] `GET /api/gemini/status` returns status without crashing
 - [ ] All automated tests in `server/tests/api.test.ts` pass
 

@@ -73,8 +73,8 @@ Load these files for context:
        `GEMINI_API_KEY=""`
        Copy `.env.example` to `server/.env` if `server/.env` does not exist.
     4. In `server/package.json`, set `"type": "module"` and install:
-       - Dependencies: `express`, `cors`, `dotenv`, `@prisma/client`, `@google/genai`, `zod`.
-       - DevDependencies: `typescript`, `@types/express`, `@types/cors`, `@types/node`, `tsx`, `prisma`.
+       - Dependencies: `express`, `cors`, `dotenv`, `@prisma/client`, `@google/genai`, `zod`, `multer`, `pdf-parse`, `mammoth`.
+       - DevDependencies: `typescript`, `@types/express`, `@types/cors`, `@types/node`, `@types/multer`, `@types/pdf-parse`, `tsx`, `prisma`.
        - Scripts: `"dev": "tsx watch src/index.ts"`, `"build": "tsc"`, `"start": "node dist/index.js"`, `"test": "tsx tests/api.test.ts"`.
     5. In `server/tsconfig.json`, target `ES2022`, module `NodeNext`, moduleResolution `NodeNext`, strict mode `true`, outDir `dist`.
     6. In `server/src/index.ts`, set up Express with `cors()`, `express.json()`, and an initial health route `GET /api/health` returning `{ status: "ok", timestamp: new Date().toISOString() }`. Listen on `process.env.PORT || 5000`.

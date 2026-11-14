@@ -18,6 +18,7 @@ files_modified:
   - client/src/components/Header.tsx
   - client/src/components/MasterResumeEditor.tsx
   - client/src/components/ExperienceEditor.tsx
+  - client/src/components/ResumeUploadDropzone.tsx
   - client/src/components/JobsFeedPlaceholder.tsx
 autonomous: true
 gap_closure: false
@@ -25,6 +26,7 @@ gap_closure: false
 must_haves:
   truths:
     - "User can view and edit their master resume profile (contact, summary, experience bullets, projects, skills, education) in the web UI"
+    - "User can drag-and-drop or select an existing PDF/DOCX resume file to automatically parse and populate fields"
     - "Saving changes sends a validated PUT request to the backend and updates the SQLite database"
     - "Reloading the page shows the persisted edits from the database"
     - "Dashboard header displays real-time Gemini API connection status badge"
@@ -37,12 +39,13 @@ must_haves:
     - "client/src/components/Header.tsx"
     - "client/src/components/MasterResumeEditor.tsx"
     - "client/src/components/ExperienceEditor.tsx"
+    - "client/src/components/ResumeUploadDropzone.tsx"
 ---
 
 # Plan 1.3: Frontend Dashboard Shell & Master Resume Editor UI
 
 ## Objective
-Build the responsive React + Vite + Tailwind CSS dashboard interface with application navigation, Gemini API status monitoring, and a comprehensive Master Resume profile editor fulfilling REQ-03. Provide intuitive management for contact details, summary, role-by-role bullet points, technical skills, and education with real-time save feedback.
+Build the responsive React + Vite + Tailwind CSS dashboard interface with application navigation, Gemini API status monitoring, and a comprehensive Master Resume profile editor fulfilling REQ-03. Provide intuitive management for contact details, summary, role-by-role bullet points, technical skills, and education, complete with one-click PDF/DOCX file upload parsing and real-time save feedback.
 
 ## Context
 Load these files for context:
@@ -72,11 +75,11 @@ Load these files for context:
     client/src/App.tsx
   </files>
   <action>
-    Scaffold the frontend client with modern tooling and shell components:
-    1. In `client/package.json`, set `"type": "module"` and install:
-       - Dependencies: `react`, `react-dom`, `lucide-react`, `clsx`, `tailwind-merge`.
-       - DevDependencies: `typescript`, `@types/react`, `@types/react-dom`, `@vitejs/plugin-react`, `vite`, `tailwindcss`, `postcss`, `autoprefixer`.
-       - Scripts: `"dev": "vite"`, `"build": "tsc && vite build"`, `"preview": "vite preview"`.
+    Create the client project structure using Vite, React 18, TypeScript, Tailwind CSS, and Lucide React icons:
+    1. In `client/package.json`, set name to `client`, version `1.0.0`, `"type": "module"`, scripts:
+       `"dev": "vite"`, `"build": "tsc && vite build"`, `"preview": "vite preview"`.
+       Install dependencies: `react`, `react-dom`, `lucide-react`, `clsx`, `tailwind-merge`.
+       Install devDependencies: `@types/react`, `@types/react-dom`, `@vitejs/plugin-react`, `vite`, `typescript`, `tailwindcss`, `postcss`, `autoprefixer`.
     2. Configure `client/vite.config.ts` with React plugin and server proxy:
        ```ts
        server: {
@@ -95,6 +98,7 @@ Load these files for context:
     5. Create `client/src/services/api.ts` exposing typed API calls:
        - `getResume(): Promise<ResumeProfile>`
        - `updateResume(data: ResumeProfile): Promise<{ profile: ResumeProfile; message: string }>`
+       - `uploadResume(file: File): Promise<{ profile: ResumeProfile; message: string }>`
        - `resetResumeSeed(): Promise<{ profile: ResumeProfile; message: string }>`
        - `getGeminiStatus(): Promise<{ connected: boolean; model: string; message: string }>`
        - `getJobs(status?: string): Promise<JobItem[]>`
@@ -120,16 +124,22 @@ Load these files for context:
 </task>
 
 <task type="auto">
-  <name>Build Master Resume Profile Editor UI (REQ-03)</name>
+  <name>Build Master Resume Profile Editor UI with PDF/DOCX Upload Dropzone (REQ-03)</name>
   <files>
     client/src/components/MasterResumeEditor.tsx
     client/src/components/ExperienceEditor.tsx
+    client/src/components/ResumeUploadDropzone.tsx
     client/src/App.tsx
   </files>
   <action>
     Implement the comprehensive Master Resume Editor interface fulfilling REQ-03:
-    1. Create `client/src/components/MasterResumeEditor.tsx`:
+    1. Create `client/src/components/ResumeUploadDropzone.tsx`:
+       - Drag & drop file area accepting `.pdf` and `.docx` files.
+       - On upload, calls `api.uploadResume(file)` with a progress/loading spinner.
+       - On completion, invokes callback `onUploadComplete(parsedProfile)` to refresh and fill the editor form instantly.
+    2. Create `client/src/components/MasterResumeEditor.tsx`:
        - On mount, call `api.getResume()` and initialize local editing state.
+       - Show `ResumeUploadDropzone` banner at the top allowing instant import from existing resume files.
        - Render structured, collapsible sections:
          a) **Personal & Contact Info**: Inputs for Full Name, Email, Phone, Location, LinkedIn URL, Portfolio/GitHub URL.
          b) **Executive Summary**: Multiline textarea for the core product summary with character/word counter and quick tips for FAANG/AI positioning.
@@ -145,11 +155,11 @@ Load these files for context:
          - "Save Master Resume" button: sends `api.updateResume(formData)`. Displays loading spinner while saving, then a green success notification toast ("Master resume updated successfully").
          - "Reset to Sample PM Profile" button: confirms with user and triggers `api.resetResumeSeed()`, updating the editor with standard high-impact PM content.
          - "Discard Changes" button to revert to the currently saved database state.
-    2. Create `client/src/components/ExperienceEditor.tsx`:
+    3. Create `client/src/components/ExperienceEditor.tsx`:
        - Modular sub-component handling the list of experience items, role metadata inputs, and bullet point editing.
        - Ensures bullet points can be edited individually, deleted, or added dynamically.
-    3. Connect `MasterResumeEditor` into the "Master Resume" tab in `App.tsx`.
-    4. Provide user-friendly feedback on network errors or validation failures returned by the API.
+    4. Connect `MasterResumeEditor` into the "Master Resume" tab in `App.tsx`.
+    5. Provide user-friendly feedback on network errors or validation failures returned by the API.
 
     AVOID: In-place direct mutation of state arrays; USE immutable state update patterns or copy helpers when adding/updating/removing bullet points and array items.
     USE: Clear visual distinctions for high-impact metric bullets (e.g. badge indicators for metrics '%', '$', 'X') to reinforce FAANG-level PM resume quality.
@@ -158,7 +168,7 @@ Load these files for context:
     npm --prefix client run build && cd server && npx tsx tests/api.test.ts
   </verify>
   <done>
-    Frontend client compiles cleanly with all editor components, and backend test suite verifies that resume updates sent by the editor persist to the database.
+    Frontend client compiles cleanly with all editor and upload components, and backend test suite verifies that resume updates sent by the editor persist to the database.
   </done>
 </task>
 
@@ -167,6 +177,7 @@ Load these files for context:
 ## Must-Haves
 After all tasks complete, verify:
 - [ ] User can view their master resume profile in the web interface
+- [ ] User can upload an existing PDF/DOCX resume and view extracted fields populated in the editor
 - [ ] User can add, edit, or remove experience bullet points and save changes to SQLite
 - [ ] Saved changes remain when the web page is reloaded
 - [ ] Header reflects Gemini API connection state
