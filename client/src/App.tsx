@@ -12,6 +12,7 @@ import { Sparkles, Layers, ArrowRight } from 'lucide-react';
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('overview');
   const [preselectedJobId, setPreselectedJobId] = useState<string | null>(null);
+  const [tailorJobId, setTailorJobId] = useState<string | null>(null);
 
   const getHeaderInfo = () => {
     switch (activeTab) {
@@ -45,12 +46,24 @@ export const App: React.FC = () => {
 
         <main className={`flex-1 overflow-y-auto ${activeTab === 'templates' ? 'p-0 overflow-hidden' : 'p-6'}`}>
           {activeTab === 'overview' && (
-            <OverviewDashboard onNavigate={(tab) => setActiveTab(tab)} />
+            <OverviewDashboard
+              onNavigate={(tab, jobId) => {
+                if (jobId) {
+                  setTailorJobId(jobId);
+                  setPreselectedJobId(jobId);
+                }
+                setActiveTab(tab);
+              }}
+            />
           )}
 
           {activeTab === 'jobs' && (
             <JobsFeedPanel
               onTailorJobs={() => setActiveTab('tailor')}
+              onNavigateToTailor={(jobId) => {
+                setTailorJobId(jobId);
+                setActiveTab('tailor');
+              }}
               onOpenInResumeBuilder={(jobId) => {
                 setPreselectedJobId(jobId);
                 setActiveTab('templates');
@@ -63,7 +76,7 @@ export const App: React.FC = () => {
           )}
 
           {activeTab === 'tailor' && (
-            <TailorStudio />
+            <TailorStudio initialJobId={tailorJobId} />
           )}
 
           {activeTab === 'templates' && (

@@ -24,9 +24,14 @@ import { JobItem, ScraperStatus } from '../types';
 interface JobsFeedPanelProps {
   onTailorJobs?: (jobIds: string[]) => void;
   onOpenInResumeBuilder?: (jobId: string) => void;
+  onNavigateToTailor?: (jobId: string) => void;
 }
 
-export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs, onOpenInResumeBuilder }) => {
+export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({
+  onTailorJobs,
+  onOpenInResumeBuilder,
+  onNavigateToTailor
+}) => {
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
@@ -292,14 +297,30 @@ export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs, onOp
                       <p className="text-[11px] text-slate-400 truncate mt-0.5">
                         {job.company} • {job.location}
                       </p>
-                      <div className="flex items-center space-x-2 mt-1.5">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
-                          {job.status}
-                        </span>
-                        {job.matchScore && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 font-semibold">
-                            {job.matchScore}% Match
+                      <div className="flex items-center justify-between mt-1.5">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+                            {job.status}
                           </span>
+                          {job.matchScore && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 font-semibold">
+                              {job.matchScore}% Match
+                            </span>
+                          )}
+                        </div>
+                        {onNavigateToTailor && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigateToTailor(job.id);
+                            }}
+                            className="text-[10px] px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-800 text-emerald-300 border border-emerald-700/50 flex items-center space-x-1 transition-colors"
+                            title="Open in Tailor & Review Studio"
+                          >
+                            <Sparkles className="w-2.5 h-2.5" />
+                            <span>Tailor</span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -330,6 +351,17 @@ export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs, onOp
                 </div>
 
                 <div className="flex items-center space-x-2">
+                  {onNavigateToTailor && (
+                    <button
+                      onClick={() => onNavigateToTailor(activeJob.id)}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow flex items-center space-x-1.5 transition-all"
+                      title="Navigate to Tailor & Review with this job selected by default"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Tailor & Review</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => onOpenInResumeBuilder?.(activeJob.id)}
                     className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow flex items-center space-x-1.5 transition-all"

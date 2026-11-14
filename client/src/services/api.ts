@@ -222,6 +222,13 @@ export const api = {
     return res.json();
   },
 
+  async getAllTailoredResumes(): Promise<any[]> {
+    const res = await fetch('/api/tailor');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.tailoredResumes || [];
+  },
+
   async getTailoredResumeByJob(jobId: string): Promise<{ ok: boolean; tailoredResume: import('../types').TailoredResumeItem | null }> {
     const res = await fetch(`/api/tailor/job/${jobId}`);
     if (res.status === 404) return { ok: false, tailoredResume: null };

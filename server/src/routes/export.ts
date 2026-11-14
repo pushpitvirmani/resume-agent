@@ -109,14 +109,26 @@ async function resolveExportData(
     }
   }
 
-  // Fallback to default master resume
-  const defaultMaster = await prisma.masterResume.findFirst({
-    where: { profileId: 'default' }
+  // Fallback to default master resume or specified profileId
+  const profileIdToUse = body.profileId || 'default';
+  let defaultMaster = await prisma.masterResume.findFirst({
+    where: { profileId: profileIdToUse }
   });
+
+  if (!defaultMaster && profileIdToUse !== 'default') {
+    defaultMaster = await prisma.masterResume.findFirst({
+      where: { profileId: 'default' }
+    });
+  }
 
   if (!defaultMaster) {
     throw new Error('No master resume data available');
   }
+
+  const profileObj = profileIdToUse !== 'default'
+    ? await prisma.profile.findUnique({ where: { id: profileIdToUse } })
+    : null;
+  const profileSuffix = profileObj?.name ? `_${sanitizeFilename(profileObj.name)}` : '';
 
   return {
     data: {
@@ -133,7 +145,7 @@ async function resolveExportData(
       projects: defaultMaster.projects ? JSON.parse(defaultMaster.projects) : [],
       certifications: defaultMaster.certifications ? JSON.parse(defaultMaster.certifications) : []
     },
-    filenameBase: `${sanitizeFilename(defaultMaster.name)}_Resume`
+    filenameBase: `${sanitizeFilename(defaultMaster.name)}${profileSuffix}_Resume`
   };
 }
 

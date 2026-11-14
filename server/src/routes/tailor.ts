@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import prisma from '../db.js';
 import {
   generateTailoredResume,
   refineTailoredResume,
@@ -36,6 +37,28 @@ router.post('/', async (req, res) => {
   } catch (error: any) {
     console.error('[API Tailor] Generation error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to tailor resume' });
+  }
+});
+
+// GET /api/tailor - Get all tailored resumes
+router.get('/', async (req, res) => {
+  try {
+    const resumes = await prisma.tailoredResume.findMany({
+      orderBy: { updatedAt: 'desc' }
+    });
+    const jobIds = resumes.map(r => r.jobId);
+    const jobs = await prisma.job.findMany({
+      where: { id: { in: jobIds } },
+      select: { id: true, title: true, company: true, location: true }
+    });
+    const jobMap = new Map(jobs.map(j => [j.id, j]));
+    const result = resumes.map(r => ({
+      ...r,
+      job: jobMap.get(r.jobId) || null
+    }));
+    res.json({ ok: true, tailoredResumes: result });
+  } catch (error: any) {
+    res.status(500).json({ ok: false, error: error.message || 'Failed to list tailored resumes' });
   }
 });
 

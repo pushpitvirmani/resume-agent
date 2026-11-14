@@ -10,39 +10,68 @@ import {
   ExternalLink,
   Loader2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Download,
+  Layers,
+  FileText,
+  Printer,
+  UserCheck
 } from 'lucide-react';
 import { api } from '../services/api';
-import { JobItem, ResumeProfile, AppSettings, ScraperStatus } from '../types';
+import { JobItem, ResumeProfile, AppSettings, ScraperStatus, ProfileItem } from '../types';
 
 interface OverviewDashboardProps {
-  onNavigate: (tab: any) => void;
+  onNavigate: (tab: any, jobId?: string) => void;
 }
 
 export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate }) => {
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [resume, setResume] = useState<ResumeProfile | null>(null);
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [profiles, setProfiles] = useState<ProfileItem[]>([]);
+  const [tailoredResumes, setTailoredResumes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [scraperStatus, setScraperStatus] = useState<ScraperStatus | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const pollTimerRef = useRef<any>(null);
 
   const loadData = async () => {
     try {
-      const [jobsData, resumeData, settingsData, statusData] = await Promise.all([
+      const [jobsData, resumeData, settingsData, statusData, profilesData, tailoredData] = await Promise.all([
         api.getJobs().catch(() => []),
         api.getResume().catch(() => null),
         api.getSettings().catch(() => null),
         api.getScraperStatus().catch(() => null),
+        api.getProfiles().catch(() => []),
+        api.getAllTailoredResumes().catch(() => []),
       ]);
       setJobs(jobsData);
       setResume(resumeData);
       setSettings(settingsData);
+      setProfiles(profilesData);
+      setTailoredResumes(tailoredData);
       if (statusData?.status) {
         setScraperStatus(statusData.status);
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadDocx = async (opts: { type: 'master' | 'profile' | 'tailored'; id?: string; name: string }) => {
+    try {
+      setDownloadingId(opts.id || opts.type);
+      if (opts.type === 'master') {
+        await api.exportDocx({ profileId: 'default' }, `${opts.name.replace(/\s+/g, '_')}_Resume.docx`);
+      } else if (opts.type === 'profile') {
+        await api.exportDocx({ profileId: opts.id }, `${opts.name.replace(/\s+/g, '_')}_Resume.docx`);
+      } else if (opts.type === 'tailored') {
+        await api.exportDocx({ jobId: opts.id }, `${opts.name.replace(/\s+/g, '_')}_Tailored_Resume.docx`);
+      }
+    } catch (err: any) {
+      alert(`Download failed: ${err.message || 'Error creating file'}`);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -186,8 +215,10 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
             <span className="text-xs font-medium">Resumes Tailored</span>
             <FileCheck2 className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-2xl font-bold text-slate-100">0</p>
-          <p className="text-[11px] text-slate-400">Ready in Phase 3</p>
+          <p className="text-2xl font-bold text-slate-100">{tailoredResumes.length}</p>
+          <p className="text-[11px] text-emerald-400 font-medium">
+            {tailoredResumes.length > 0 ? `${tailoredResumes.length} Ready for Download` : 'Ready in Tailor Studio'}
+          </p>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-1">
@@ -206,6 +237,209 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
           </div>
           <p className="text-sm font-bold text-slate-100 truncate mt-1">Daily @ 9:00 AM</p>
           <p className="text-[11px] text-slate-400 font-mono">Limit: {settings?.maxScrapeJobs || 25} jobs</p>
+        </div>
+      </div>
+
+      {/* Saved Resumes & Download Center */}
+      <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Download className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-sm font-bold text-white">Saved Resumes & Download Center</h3>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              1-click Word (.docx) and PDF downloads for your Master profile, custom profiles, and AI-tailored resumes.
+            </p>
+          </div>
+          <button
+            onClick={() => onNavigate('templates')}
+            className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 self-start sm:self-auto"
+          >
+            <span>Open Resume Studio</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="space-y-2.5">
+          {/* 1. Master Baseline Resume */}
+          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/90 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-slate-700 transition-colors">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0 mt-0.5">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-slate-100">
+                    {resume?.name || 'Pushpit Virmani'} — Master Resume
+                  </h4>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 font-semibold">
+                    Master Baseline
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Default source resume with all baseline experiences, skills, and metrics
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+              <button
+                onClick={() => handleDownloadDocx({ type: 'master', name: resume?.name || 'Pushpit_Virmani' })}
+                disabled={downloadingId === 'master'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-all disabled:opacity-50"
+                title="Download ATS-compliant Word document (.docx)"
+              >
+                {downloadingId === 'master' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-indigo-400" />
+                )}
+                <span>Word (.docx)</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('templates')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium transition-all"
+                title="Open in Resume Studio to print or export 1-page PDF"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print / PDF</span>
+              </button>
+
+              <button
+                onClick={() => onNavigate('resume')}
+                className="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 text-xs transition-colors"
+                title="Edit Master Profile"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Custom Named Profiles */}
+          {profiles.filter((p) => !p.isDefault).map((prof) => (
+            <div
+              key={prof.id}
+              className="p-3.5 rounded-xl bg-slate-950 border border-purple-500/20 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-purple-500/40 transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 shrink-0 mt-0.5">
+                  <UserCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-slate-100">
+                      {prof.name}
+                    </h4>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-500/30 font-semibold">
+                      Custom Profile
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {prof.description || 'Independent resume profile with custom achievements'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                <button
+                  onClick={() => handleDownloadDocx({ type: 'profile', id: prof.id, name: prof.name })}
+                  disabled={downloadingId === prof.id}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-all disabled:opacity-50"
+                  title="Download profile as Word document (.docx)"
+                >
+                  {downloadingId === prof.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5 text-purple-400" />
+                  )}
+                  <span>Word (.docx)</span>
+                </button>
+
+                <button
+                  onClick={() => onNavigate('templates')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-medium transition-all"
+                  title="Open in Resume Studio to print or export 1-page PDF"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print / PDF</span>
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* 3. Tailored Resumes */}
+          {tailoredResumes.map((tailored) => (
+            <div
+              key={tailored.id}
+              className="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/20 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-emerald-500/40 transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0 mt-0.5">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-slate-100">
+                      {tailored.job?.company || 'Company'} — {tailored.job?.title || 'Tailored Resume'}
+                    </h4>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 font-semibold">
+                      Tailored ({tailored.atsScore}% ATS)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {tailored.job?.location ? `${tailored.job.location} • ` : ''}Updated with AI tailored achievements & keyword match
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                <button
+                  onClick={() => handleDownloadDocx({
+                    type: 'tailored',
+                    id: tailored.jobId,
+                    name: `${tailored.job?.company || 'Job'}_Resume`
+                  })}
+                  disabled={downloadingId === tailored.jobId}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-all disabled:opacity-50"
+                  title="Download tailored Word document (.docx)"
+                >
+                  {downloadingId === tailored.jobId ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                  <span>Word (.docx)</span>
+                </button>
+
+                <button
+                  onClick={() => onNavigate('tailor', tailored.jobId)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all"
+                  title="Open in Tailor & Review Studio"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Tailor & Review</span>
+                </button>
+
+                <button
+                  onClick={() => onNavigate('templates', tailored.jobId)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-all"
+                  title="Open in Resume Studio to print or export 1-page PDF"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print / PDF</span>
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* Empty State when no tailored resumes or custom profiles exist */}
+          {profiles.filter((p) => !p.isDefault).length === 0 && tailoredResumes.length === 0 && (
+            <div className="p-4 rounded-xl bg-slate-950/40 border border-dashed border-slate-800 text-center text-xs text-slate-400">
+              Your Master Resume is ready for download above. When you tailor resumes for jobs or save new profiles, they will appear here with 1-click download options!
+            </div>
+          )}
         </div>
       </div>
 

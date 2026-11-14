@@ -22,7 +22,13 @@ import {
   Award,
   Zap,
   HelpCircle,
-  Undo2
+  Undo2,
+  Eye,
+  FileText,
+  X,
+  Copy,
+  Plus,
+  FolderPlus
 } from 'lucide-react';
 import { api } from '../services/api';
 import {
@@ -30,7 +36,8 @@ import {
   TailoredResumeItem,
   TailoredContent,
   SuggestedGuideline,
-  ResumeProfile
+  ResumeProfile,
+  ProfileItem
 } from '../types';
 import { GuidelineConfirmationModal } from './GuidelineConfirmationModal';
 import { calculateDynamicAtsScore, ATSScoreResult } from '../utils/atsCalculator';
@@ -40,17 +47,19 @@ interface TailorStudioProps {
   initialJobId?: string | null;
 }
 
-const GEMINI_MODELS = [
-  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', badge: 'Ultra Fast (~1s)', icon: '⚡' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', badge: 'Deep PM Reasoning', icon: '🧠' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', badge: 'Fast & Balanced', icon: '⚡' },
-  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro Preview', badge: 'Next-Gen Thinking', icon: '🚀' },
-  { id: 'gemini-3-flash-preview', name: 'Gemini 3.0 Flash Preview', badge: 'Preview Fast', icon: '✨' },
+// Strictly verified working models for this API key (zero 403/429/404 errors)
+const WORKING_GEMINI_MODELS = [
+  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite', badge: 'Fast & High Quota (Recommended)', icon: '⚡' },
+  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite', badge: 'High Speed Stable', icon: '⚡' },
+  { id: 'gemini-3-flash-preview', name: 'Gemini 3.0 Flash Preview', badge: 'Next-Gen Speed', icon: '✨' },
+  { id: 'gemini-flash-lite-latest', name: 'Gemini Flash-Lite Latest', badge: 'Continuous Release', icon: '🚀' },
 ];
 
 export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
   const [jobs, setJobs] = useState<JobItem[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string>('');
+  const [profiles, setProfiles] = useState<ProfileItem[]>([]);
+  const [selectedBaselineResumeId, setSelectedBaselineResumeId] = useState<string>('master');
   const [masterResume, setMasterResume] = useState<ResumeProfile | null>(null);
   const [tailoredResume, setTailoredResume] = useState<TailoredResumeItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -58,7 +67,7 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
   const [savingEdit, setSavingEdit] = useState<boolean>(false);
   const [exportingDocx, setExportingDocx] = useState<boolean>(false);
 
-  // Gemini Model Selection
+  // Gemini Model Selection - strictly verified allowed models
   const [selectedModel, setSelectedModel] = useState<string>('gemini-3.1-flash-lite');
 
   // Interactive Section Filter: 'all' | 'summary' | 'skills' | expId
@@ -70,12 +79,14 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
   // Original unedited tailored recommendations (for side-by-side diff)
   const [recommendedContent, setRecommendedContent] = useState<TailoredContent | null>(null);
 
-  // Editing state trackers
-  const [editingField, setEditingField] = useState<{
-    section: 'summary' | 'bullet' | 'skills';
-    expIdx?: number;
-    bulletIdx?: number;
-  } | null>(null);
+  // Job Description Popup Modal state (Strictly reads saved DB description, NO LIVE SCRAPING)
+  const [showJdModal, setShowJdModal] = useState<boolean>(false);
+
+  // "Save as New Resume" Modal state
+  const [showSaveNewResumeModal, setShowSaveNewResumeModal] = useState<boolean>(false);
+  const [newResumeName, setNewResumeName] = useState<string>('');
+  const [newResumeDesc, setNewResumeDesc] = useState<string>('');
+  const [savingNewResume, setSavingNewResume] = useState<boolean>(false);
 
   // Conversational refinement
   const [feedbackPrompt, setFeedbackPrompt] = useState<string>('');
@@ -83,17 +94,19 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
   const [pendingGuideline, setPendingGuideline] = useState<SuggestedGuideline | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Initialize data
+  // Load initial data
   useEffect(() => {
     async function init() {
       try {
         setLoading(true);
-        const [jobsList, master] = await Promise.all([
+        const [jobsList, master, profilesList] = await Promise.all([
           api.getJobs(),
           api.getResume(),
+          api.getProfiles().catch(() => []),
         ]);
         setJobs(jobsList);
         setMasterResume(master);
+        setProfiles(profilesList);
 
         const targetId = initialJobId || (jobsList.length > 0 ? jobsList[0].id : '');
         setSelectedJobId(targetId);
@@ -106,6 +119,14 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
       }
     }
     init();
+  }, [initialJobId]);
+
+  // When initialJobId changes from props (e.g. user clicked "Tailor this job" in feed)
+  useEffect(() => {
+    if (initialJobId && initialJobId !== selectedJobId) {
+      setSelectedJobId(initialJobId);
+      loadTailoredForJob(initialJobId);
+    }
   }, [initialJobId]);
 
   const loadTailoredForJob = async (jobId: string) => {
@@ -132,6 +153,19 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
     setLoading(false);
   };
 
+  // Switch baseline resume (e.g. Master vs other Profiles)
+  const handleSelectBaselineResume = async (profId: string) => {
+    setSelectedBaselineResumeId(profId);
+    try {
+      const baseResume = await api.getResume(profId === 'master' ? 'default' : profId);
+      setMasterResume(baseResume);
+      setToastMessage(`Switched baseline resume to: "${baseResume.name}"`);
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch (e) {
+      console.error('Failed to switch baseline resume:', e);
+    }
+  };
+
   const currentJob = useMemo(() => jobs.find((j) => j.id === selectedJobId), [jobs, selectedJobId]);
 
   // Real-time Dynamic ATS Score Post Each Change
@@ -140,7 +174,7 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
     return calculateDynamicAtsScore(editableContent, currentJob);
   }, [editableContent, currentJob]);
 
-  // Generate Tailored Resume with Selected Gemini Model
+  // Generate Tailored Resume with Selected Verified Gemini Model
   const handleGenerateTailoring = async () => {
     if (!selectedJobId) return;
     try {
@@ -175,9 +209,9 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
     }
   };
 
-  // 1-Click Apply AI Recommendation for a specific bullet
-  const handleApplyRecommendation = (expIdx: number, bulletIdx: number) => {
-    if (!editableContent || !recommendedContent) return;
+  // 1-Click Apply AI Recommendation for a specific bullet (Immediately Saves)
+  const handleApplyRecommendation = async (expIdx: number, bulletIdx: number) => {
+    if (!editableContent || !recommendedContent || !tailoredResume) return;
     const recBullet = recommendedContent.experience[expIdx]?.bullets[bulletIdx];
     if (!recBullet) return;
 
@@ -200,22 +234,33 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
     const updatedContent: TailoredContent = { ...editableContent, experience: updatedExp };
     setEditableContent(updatedContent);
 
-    // Auto-save update
-    if (tailoredResume) {
-      api.updateTailoredResume(tailoredResume.id, updatedContent).catch(console.error);
+    // Immediate save and dynamic ATS score update
+    const newScore = calculateDynamicAtsScore(updatedContent, currentJob).score;
+    try {
+      await api.updateTailoredResume(tailoredResume.id, updatedContent, newScore);
+      setToastMessage(`Recommendation applied & saved! (ATS Score: ${newScore}%)`);
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch (err) {
+      console.error('Failed to auto-save recommendation:', err);
     }
   };
 
-  // 1-Click Apply Summary Recommendation
-  const handleApplySummaryRecommendation = () => {
-    if (!editableContent || !recommendedContent) return;
+  // 1-Click Apply Summary Recommendation (Immediately Saves)
+  const handleApplySummaryRecommendation = async () => {
+    if (!editableContent || !recommendedContent || !tailoredResume) return;
     const updatedContent = {
       ...editableContent,
       summary: recommendedContent.summary,
     };
     setEditableContent(updatedContent);
-    if (tailoredResume) {
-      api.updateTailoredResume(tailoredResume.id, updatedContent).catch(console.error);
+
+    const newScore = calculateDynamicAtsScore(updatedContent, currentJob).score;
+    try {
+      await api.updateTailoredResume(tailoredResume.id, updatedContent, newScore);
+      setToastMessage(`Summary recommendation applied & saved! (ATS Score: ${newScore}%)`);
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch (err) {
+      console.error('Failed to auto-save summary recommendation:', err);
     }
   };
 
@@ -243,6 +288,88 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
 
     updatedExp[expIdx] = { ...updatedExp[expIdx], bullets: updatedBullets };
     setEditableContent({ ...editableContent, experience: updatedExp });
+  };
+
+  // CTA 1: Update All Changes to Master Resume
+  const handleUpdateAllToMasterResume = async () => {
+    if (!editableContent || !masterResume) return;
+    if (
+      !window.confirm(
+        'Are you sure you want to update your Master Resume with all current tailored achievements and summary? This will become your new baseline master resume.'
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setSavingEdit(true);
+      const updatedMaster: ResumeProfile = {
+        ...masterResume,
+        summary: editableContent.summary,
+        experience: masterResume.experience.map((mExp, mIdx) => {
+          const matchingTailored = editableContent.experience[mIdx];
+          if (!matchingTailored) return mExp;
+          return {
+            ...mExp,
+            bullets: matchingTailored.bullets.map((b) =>
+              typeof b === 'string' ? b : b.tailored || b.original
+            ),
+          };
+        }),
+      };
+
+      const res = await api.updateResume(updatedMaster, selectedBaselineResumeId === 'master' ? 'default' : selectedBaselineResumeId);
+      setMasterResume(res.profile);
+      setToastMessage('Master Resume successfully updated with tailored achievements!');
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (err: any) {
+      alert(`Failed to update Master Resume: ${err.message}`);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // CTA 2: Save as New Resume (Profile)
+  const handleSaveAsNewResume = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newResumeName.trim() || !editableContent || !masterResume) return;
+
+    try {
+      setSavingNewResume(true);
+      const createdProf = await api.createProfile(newResumeName.trim(), newResumeDesc.trim());
+
+      // Update its cloned master resume with current tailored content
+      const customProfileResume: ResumeProfile = {
+        ...masterResume,
+        name: `${masterResume.name} (${newResumeName.trim()})`,
+        summary: editableContent.summary,
+        experience: masterResume.experience.map((mExp, mIdx) => {
+          const matchingTailored = editableContent.experience[mIdx];
+          if (!matchingTailored) return mExp;
+          return {
+            ...mExp,
+            bullets: matchingTailored.bullets.map((b) =>
+              typeof b === 'string' ? b : b.tailored || b.original
+            ),
+          };
+        }),
+      };
+
+      await api.updateResume(customProfileResume, createdProf.id);
+
+      // Refresh profiles list
+      const updatedList = await api.getProfiles();
+      setProfiles(updatedList);
+      setShowSaveNewResumeModal(false);
+      setNewResumeName('');
+      setNewResumeDesc('');
+      setToastMessage(`New resume "${createdProf.name}" created! Available in Overview and Studio.`);
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (err: any) {
+      alert(`Failed to create new resume: ${err.message}`);
+    } finally {
+      setSavingNewResume(false);
+    }
   };
 
   // Conversational Refinement Submit
@@ -329,16 +456,30 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
         />
       )}
 
-      {/* Header Bar: Job Selector, Gemini Model Switcher, Real-Time ATS Score, Actions */}
+      {/* Header Bar: Job Selector, JD Popup Button, Baseline Resume Selector, Verified Gemini Models */}
       <header className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-xl">
-        <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+        {/* Job Selector & View JD Popup Icon */}
+        <div className="flex items-center gap-3 flex-1 min-w-[300px]">
           <div className="p-2.5 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-xl shrink-0">
             <Briefcase className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-              Target Job Posting
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Target Job Posting
+              </label>
+              {currentJob && (
+                <button
+                  type="button"
+                  onClick={() => setShowJdModal(true)}
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 transition-colors"
+                  title="View complete saved Job Description without making any live scraper requests"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>View Full JD (Saved)</span>
+                </button>
+              )}
+            </div>
             <div className="relative">
               <select
                 value={selectedJobId}
@@ -356,20 +497,47 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
           </div>
         </div>
 
-        {/* Gemini Model Switcher */}
+        {/* Baseline Resume Selector (Select which resume to edit for each JD) */}
+        <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 min-w-[210px]">
+          <Layers className="w-4 h-4 text-indigo-400 shrink-0" />
+          <div className="flex-1 min-w-0 text-left">
+            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              Baseline Resume
+            </label>
+            <select
+              value={selectedBaselineResumeId}
+              onChange={(e) => handleSelectBaselineResume(e.target.value)}
+              className="w-full bg-transparent text-xs font-semibold text-slate-200 focus:outline-none cursor-pointer pr-1 truncate"
+              title="Select which baseline master profile to use for tailoring"
+            >
+              <option value="master" className="bg-slate-900 text-slate-200">
+                Master Resume (Pushpit Virmani)
+              </option>
+              {profiles
+                .filter((p) => !p.isDefault)
+                .map((p) => (
+                  <option key={p.id} value={p.id} className="bg-slate-900 text-slate-200">
+                    Profile: {p.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Verified Working Gemini Model Switcher */}
         <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
           <Cpu className="w-4 h-4 text-purple-400 shrink-0" />
           <div className="text-left">
             <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-              AI Engine Model
+              Gemini Model
             </label>
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
               className="bg-transparent text-xs font-bold text-purple-200 focus:outline-none cursor-pointer pr-2"
-              title="Select Gemini Model used for tailoring and refinement"
+              title="Verified usable Gemini models for your account"
             >
-              {GEMINI_MODELS.map((m) => (
+              {WORKING_GEMINI_MODELS.map((m) => (
                 <option key={m.id} value={m.id} className="bg-slate-900 text-slate-200">
                   {m.icon} {m.name} ({m.badge})
                 </option>
@@ -407,18 +575,6 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 shrink-0">
-          {currentJob?.url && (
-            <a
-              href={currentJob.url}
-              target="_blank"
-              rel="noreferrer"
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 transition-colors border border-slate-700"
-              title="Open posting"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          )}
-
           <button
             onClick={handleGenerateTailoring}
             disabled={tailoring || !selectedJobId}
@@ -429,35 +585,23 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
             ) : (
               <Sparkles className="w-4 h-4" />
             )}
-            <span>{tailoring ? 'Tailoring with AI...' : tailoredResume ? 'Re-Tailor' : 'Tailor with AI'}</span>
+            <span>{tailoring ? 'Tailoring with Gemini...' : tailoredResume ? 'Re-Tailor' : 'Tailor with AI'}</span>
           </button>
 
           {tailoredResume && (
-            <>
-              <button
-                onClick={handleSaveInPlaceEdits}
-                disabled={savingEdit}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md transition-all disabled:opacity-50"
-                title="Save current edits & updated ATS score"
-              >
-                {savingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                <span>{savingEdit ? 'Saving...' : 'Save Edits'}</span>
-              </button>
-
-              <button
-                onClick={handleExportDocx}
-                disabled={exportingDocx}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
-                title="Download tailored Word document (.docx)"
-              >
-                {exportingDocx ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-                ) : (
-                  <Download className="w-3.5 h-3.5 text-indigo-400" />
-                )}
-                <span>Word (.docx)</span>
-              </button>
-            </>
+            <button
+              onClick={handleExportDocx}
+              disabled={exportingDocx}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+              title="Download tailored Word document (.docx)"
+            >
+              {exportingDocx ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-indigo-400" />
+              )}
+              <span>Word (.docx)</span>
+            </button>
           )}
         </div>
       </header>
@@ -469,7 +613,7 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
           <h3 className="text-base font-bold text-white">No Tailored Resume Generated Yet</h3>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             Click <strong>"Tailor with AI"</strong> above to analyze{' '}
-            <strong>{currentJob?.company}</strong>'s job description and generate side-by-side recommended changes.
+            <strong>{currentJob?.company}</strong>'s saved job description and generate side-by-side recommended changes.
           </p>
         </div>
       )}
@@ -477,6 +621,39 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
       {/* When Tailored Resume Exists: Side-by-Side Resume Preview & AI Recommendations */}
       {tailoredResume && editableContent && (
         <div className="space-y-4">
+          {/* Action CTAs Banner: Update to Master Resume OR Save as New Resume */}
+          <div className="bg-slate-900/90 border border-indigo-500/30 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-semibold text-slate-200">
+                Tailored for: <strong className="text-white">{currentJob?.company} — {currentJob?.title}</strong>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* CTA: Update All Changes to Master Resume */}
+              <button
+                onClick={handleUpdateAllToMasterResume}
+                disabled={savingEdit}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition-all shadow-sm"
+                title="Update your Master Resume with all current tailored achievements"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Update to Master Resume</span>
+              </button>
+
+              {/* CTA: Save as New Resume */}
+              <button
+                onClick={() => setShowSaveNewResumeModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-all shadow-sm"
+                title="Save current tailored content as a new named resume / profile"
+              >
+                <FolderPlus className="w-3.5 h-3.5" />
+                <span>Save as New Resume</span>
+              </button>
+            </div>
+          </div>
+
           {/* Section Navigation Ribbon */}
           <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800 overflow-x-auto">
             <div className="flex items-center gap-1.5 min-w-max">
@@ -530,7 +707,7 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
 
             <div className="text-[11px] text-slate-400 hidden lg:flex items-center gap-2 pr-2">
               <Edit3 className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Edit text in left preview • Click "Apply" on right to adopt AI recommendations</span>
+              <span>Edit text directly on left • Click "Apply" on right to adopt AI recommendation</span>
             </div>
           </div>
 
@@ -575,7 +752,7 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
                       <span className="text-[11px] uppercase font-bold text-indigo-400 tracking-wider">
                         Professional Summary
                       </span>
-                      <span className="text-[10px] text-slate-500">Click to edit directly</span>
+                      <span className="text-[10px] text-slate-500">Edit directly below</span>
                     </div>
                     <textarea
                       rows={3}
@@ -718,9 +895,10 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
                       <button
                         onClick={handleApplySummaryRecommendation}
                         className="px-2.5 py-1 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 text-[10px] font-semibold transition-colors flex items-center gap-1"
+                        title="Adopt this recommendation and immediately save"
                       >
                         <Check className="w-3 h-3" />
-                        Apply to Resume
+                        Apply & Save
                       </button>
                     </div>
                     <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
@@ -778,10 +956,11 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
                                     </span>
                                     <button
                                       onClick={() => handleApplyRecommendation(expIdx, bIdx)}
-                                      className="px-2 py-0.5 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 text-[10px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
+                                      className="px-2.5 py-1 rounded bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 text-[10px] font-semibold transition-colors flex items-center gap-1 shadow-sm"
+                                      title="Adopt this recommendation and immediately save"
                                     >
                                       <Check className="w-2.5 h-2.5" />
-                                      Apply
+                                      Apply & Save
                                     </button>
                                   </div>
 
@@ -863,6 +1042,132 @@ export const TailorStudio: React.FC<TailorStudioProps> = ({ initialJobId }) => {
                 {refining ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 <span>{refining ? 'Refining...' : 'Refine'}</span>
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: Saved Job Description Details (STRICTLY FROM DB, NO LIVE SCRAPING) */}
+      {showJdModal && currentJob && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-800 flex items-start justify-between bg-slate-950/80">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[10px] font-semibold border border-indigo-500/30">
+                    Saved from SQLite Database (No Live Scrape)
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    {currentJob.postedDate ? new Date(currentJob.postedDate).toLocaleDateString() : 'Active'}
+                  </span>
+                </div>
+                <h2 className="text-base font-bold text-white">{currentJob.title}</h2>
+                <p className="text-xs text-slate-400 font-medium">
+                  {currentJob.company} • {currentJob.location}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowJdModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs text-slate-300 leading-relaxed whitespace-pre-line font-sans">
+              {currentJob.description}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between">
+              {currentJob.url ? (
+                <a
+                  href={currentJob.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>View Original LinkedIn Posting</span>
+                </a>
+              ) : (
+                <div />
+              )}
+              <button
+                onClick={() => setShowJdModal(false)}
+                className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: Save as New Resume / Profile */}
+      {showSaveNewResumeModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <FolderPlus className="w-5 h-5 text-purple-400" />
+                <h3 className="text-sm font-bold text-white">Save as New Resume Profile</h3>
+              </div>
+              <button
+                onClick={() => setShowSaveNewResumeModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAsNewResume} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-300">Resume Profile Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Google PM Strategy, FinTech Lead"
+                  value={newResumeName}
+                  onChange={(e) => setNewResumeName(e.target.value)}
+                  className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-300">Description / Focus (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Tailored for enterprise cloud and AI platforms"
+                  value={newResumeDesc}
+                  onChange={(e) => setNewResumeDesc(e.target.value)}
+                  className="w-full mt-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="text-[11px] text-slate-400 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
+                This will save your current tailored content as a completely independent resume profile, accessible in <strong>Overview</strong> and <strong>Resume Studio</strong>.
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSaveNewResumeModal(false)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-800 text-xs text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingNewResume || !newResumeName.trim()}
+                  className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {savingNewResume && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{savingNewResume ? 'Saving...' : 'Create & Save Resume'}</span>
+                </button>
+              </div>
             </form>
           </div>
         </div>

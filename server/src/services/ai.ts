@@ -143,8 +143,8 @@ export async function generateText(
         console.warn(`[AI Service] ${targetModel} error (${err.message}), trying gemini-3.1-flash-lite fallback...`);
         return await tryGenerate('gemini-3.1-flash-lite');
       }
-      console.warn(`[AI Service] gemini-3.1-flash-lite error (${err.message}), trying gemini-2.5-flash fallback...`);
-      return await tryGenerate('gemini-2.5-flash');
+      console.warn(`[AI Service] gemini-3.1-flash-lite error (${err.message}), trying gemini-3.5-flash-lite fallback...`);
+      return await tryGenerate('gemini-3.5-flash-lite');
     }
   }
 
