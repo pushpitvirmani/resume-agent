@@ -140,5 +140,31 @@ export const api = {
     if (!res.ok) throw new Error('Failed to create job');
     const data = await res.json();
     return data.job;
+  },
+
+  // Scraper
+  async getScraperStatus(): Promise<{ ok: boolean; status: import('../types').ScraperStatus }> {
+    const res = await fetch('/api/scraper/status');
+    if (!res.ok) throw new Error('Failed to fetch scraper status');
+    return res.json();
+  },
+
+  async triggerScraper(options?: {
+    keywords?: string;
+    location?: string;
+    maxJobs?: number;
+    datePreset?: string;
+    dateFrom?: string;
+  }): Promise<{ ok: boolean; message: string; status: import('../types').ScraperStatus }> {
+    const res = await fetch('/api/scraper/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options || {})
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to trigger scraper');
+    }
+    return res.json();
   }
 };

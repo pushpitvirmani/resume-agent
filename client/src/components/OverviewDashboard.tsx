@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Briefcase,
   FileCheck2,
@@ -8,10 +8,12 @@ import {
   ArrowRight,
   Sparkles,
   ExternalLink,
-  Loader2
+  Loader2,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { api } from '../services/api';
-import { JobItem, ResumeProfile, AppSettings } from '../types';
+import { JobItem, ResumeProfile, AppSettings, ScraperStatus } from '../types';
 
 interface OverviewDashboardProps {
   onNavigate: (tab: any) => void;
@@ -22,39 +24,72 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
   const [resume, setResume] = useState<ResumeProfile | null>(null);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [scraping, setScraping] = useState(false);
+  const [scraperStatus, setScraperStatus] = useState<ScraperStatus | null>(null);
+  const pollTimerRef = useRef<any>(null);
+
+  const loadData = async () => {
+    try {
+      const [jobsData, resumeData, settingsData, statusData] = await Promise.all([
+        api.getJobs().catch(() => []),
+        api.getResume().catch(() => null),
+        api.getSettings().catch(() => null),
+        api.getScraperStatus().catch(() => null),
+      ]);
+      setJobs(jobsData);
+      setResume(resumeData);
+      setSettings(settingsData);
+      if (statusData?.status) {
+        setScraperStatus(statusData.status);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const [jobsData, resumeData, settingsData] = await Promise.all([
-          api.getJobs().catch(() => []),
-          api.getResume().catch(() => null),
-          api.getSettings().catch(() => null)
-        ]);
-        setJobs(jobsData);
-        setResume(resumeData);
-        setSettings(settingsData);
-      } finally {
-        setLoading(false);
-      }
-    }
     loadData();
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
   }, []);
+
+  // Poll scraper status if running
+  useEffect(() => {
+    if (scraperStatus?.isRunning && !pollTimerRef.current) {
+      pollTimerRef.current = setInterval(async () => {
+        try {
+          const res = await api.getScraperStatus();
+          if (res?.status) {
+            setScraperStatus(res.status);
+            if (!res.status.isRunning) {
+              if (pollTimerRef.current) {
+                clearInterval(pollTimerRef.current);
+                pollTimerRef.current = null;
+              }
+              // Refresh job list once scraping completes
+              const refreshed = await api.getJobs();
+              setJobs(refreshed);
+            }
+          }
+        } catch (err) {
+          console.error('Error polling scraper status:', err);
+        }
+      }, 1000);
+    }
+  }, [scraperStatus?.isRunning]);
 
   const handleScrapeNow = async () => {
     try {
-      setScraping(true);
-      // Simulate quick trigger or manual add
-      await new Promise((r) => setTimeout(r, 1200));
-      // Refresh
-      const updatedJobs = await api.getJobs();
-      setJobs(updatedJobs);
-    } finally {
-      setScraping(false);
+      const res = await api.triggerScraper();
+      if (res?.status) {
+        setScraperStatus(res.status);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to trigger scrape');
     }
   };
+
+  const isScraping = scraperStatus?.isRunning || false;
 
   if (loading) {
     return (
@@ -85,11 +120,11 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
         <div className="flex items-center space-x-2.5">
           <button
             onClick={handleScrapeNow}
-            disabled={scraping}
+            disabled={isScraping}
             className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
           >
-            {scraping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white" />}
-            <span>{scraping ? 'Scraping Jobs...' : 'Scrape Now'}</span>
+            {isScraping ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-white" />}
+            <span>{isScraping ? 'Scraping Jobs...' : 'Scrape Now'}</span>
           </button>
           <button
             onClick={() => onNavigate('resume')}
@@ -100,6 +135,40 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate
           </button>
         </div>
       </div>
+
+      {/* Live Scraper Status Banner */}
+      {scraperStatus && (scraperStatus.isRunning || scraperStatus.error || scraperStatus.lastResult) && (
+        <div className={`p-4 rounded-xl border flex items-center justify-between text-xs transition-all ${
+          scraperStatus.isRunning
+            ? 'bg-indigo-950/40 border-indigo-500/40 text-indigo-200'
+            : scraperStatus.error
+            ? 'bg-rose-950/40 border-rose-500/40 text-rose-200'
+            : 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+        }`}>
+          <div className="flex items-center space-x-2.5">
+            {scraperStatus.isRunning ? (
+              <Loader2 className="w-4 h-4 text-indigo-400 animate-spin shrink-0" />
+            ) : scraperStatus.error ? (
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            )}
+            <div>
+              <p className="font-semibold">{scraperStatus.progress}</p>
+              {scraperStatus.lastResult && !scraperStatus.isRunning && (
+                <p className="text-[11px] opacity-80 mt-0.5">
+                  Extracted {scraperStatus.lastResult.scraped} positions • {scraperStatus.lastResult.inserted} new jobs added to your feed
+                </p>
+              )}
+            </div>
+          </div>
+          {scraperStatus.isRunning && (
+            <div className="shrink-0 font-mono text-[11px] bg-indigo-500/20 px-2 py-1 rounded">
+              {scraperStatus.currentCount} / {scraperStatus.maxJobs}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 4 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

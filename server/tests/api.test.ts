@@ -124,6 +124,25 @@ async function runTests() {
     }
     console.log('✓ GET /api/ai/status passed (Gemini connected:', aiData.providers.gemini.connected, ')');
 
+    // 9. Test Scraper Status and Trigger Endpoints
+    const scraperStatusRes = await fetch(`${BASE_URL}/api/scraper/status`);
+    const scraperStatusData = await scraperStatusRes.json();
+    if (!scraperStatusData.ok || !scraperStatusData.status) {
+      throw new Error('GET /api/scraper/status failed');
+    }
+    console.log('✓ GET /api/scraper/status passed (Status:', scraperStatusData.status.progress, ')');
+
+    const triggerRes = await fetch(`${BASE_URL}/api/scraper/trigger`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keywords: 'Product Manager', maxJobs: 1 }),
+    });
+    const triggerData = await triggerRes.json();
+    if (!triggerData.ok && triggerData.message !== 'Scraping is already running.') {
+      throw new Error('POST /api/scraper/trigger failed');
+    }
+    console.log('✓ POST /api/scraper/trigger passed (Message:', triggerData.message, ')');
+
     // Cleanup created test guideline
     await prisma.resumeGuideline.delete({ where: { id: createdGuideline.guideline.id } });
 

@@ -104,3 +104,13 @@ export interface AIStatusResponse {
     openai: { configured: boolean; model: string; connected: boolean; message: string; latencyMs?: number };
   };
 }
+
+export interface ScraperStatus {
+  isRunning: boolean;
+  progress: string;
+  currentCount: number;
+  maxJobs: number;
+  lastRunAt: string | null;
+  lastResult: { scraped: number; inserted: number; updated: number } | null;
+  error: string | null;
+}

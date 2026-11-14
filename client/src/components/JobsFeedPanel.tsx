@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Search,
   Filter,
@@ -11,10 +11,13 @@ import {
   CheckSquare,
   Square,
   X,
-  Loader2
+  Loader2,
+  Play,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { api } from '../services/api';
-import { JobItem } from '../types';
+import { JobItem, ScraperStatus } from '../types';
 
 interface JobsFeedPanelProps {
   onTailorJobs?: (jobIds: string[]) => void;
@@ -27,6 +30,8 @@ export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs }) =>
   const [activeJob, setActiveJob] = useState<JobItem | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [scraperStatus, setScraperStatus] = useState<ScraperStatus | null>(null);
+  const pollTimerRef = useRef<any>(null);
 
   // New job modal state
   const [newJob, setNewJob] = useState({
@@ -40,8 +45,14 @@ export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs }) =>
   const loadJobs = async () => {
     try {
       setLoading(true);
-      const data = await api.getJobs();
+      const [data, statusData] = await Promise.all([
+        api.getJobs(),
+        api.getScraperStatus().catch(() => null),
+      ]);
       setJobs(data);
+      if (statusData?.status) {
+        setScraperStatus(statusData.status);
+      }
       if (data.length > 0 && !activeJob) {
         setActiveJob(data[0]);
       }
@@ -52,7 +63,52 @@ export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs }) =>
 
   useEffect(() => {
     loadJobs();
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
   }, []);
+
+  // Poll status while scraper is running
+  useEffect(() => {
+    if (scraperStatus?.isRunning && !pollTimerRef.current) {
+      pollTimerRef.current = setInterval(async () => {
+        try {
+          const res = await api.getScraperStatus();
+          if (res?.status) {
+            setScraperStatus(res.status);
+            if (!res.status.isRunning) {
+              if (pollTimerRef.current) {
+                clearInterval(pollTimerRef.current);
+                pollTimerRef.current = null;
+              }
+              const refreshed = await api.getJobs();
+              setJobs(refreshed);
+              if (refreshed.length > 0) setActiveJob(refreshed[0]);
+            }
+          }
+        } catch (err) {
+          console.error('Error polling status:', err);
+        }
+      }, 1000);
+    }
+  }, [scraperStatus?.isRunning]);
+
+  const handleTriggerScraper = async () => {
+    try {
+      const options: any = {};
+      if (searchKeyword.trim()) {
+        options.keywords = searchKeyword.trim();
+      }
+      const res = await api.triggerScraper(options);
+      if (res?.status) {
+        setScraperStatus(res.status);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to trigger scraper');
+    }
+  };
+
+  const isScraping = scraperStatus?.isRunning || false;
 
   const handleToggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -111,14 +167,56 @@ export const JobsFeedPanel: React.FC<JobsFeedPanelProps> = ({ onTailorJobs }) =>
 
         <div className="flex items-center space-x-2 shrink-0">
           <button
+            onClick={handleTriggerScraper}
+            disabled={isScraping}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+          >
+            {isScraping ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            <span>{isScraping ? 'Scraping...' : 'Scrape LinkedIn'}</span>
+          </button>
+
+          <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium shadow-sm transition-colors"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium shadow-sm transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Job Manually</span>
           </button>
         </div>
       </div>
+
+      {/* Scraper Progress Banner */}
+      {scraperStatus && (scraperStatus.isRunning || scraperStatus.error || scraperStatus.lastResult) && (
+        <div className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
+          scraperStatus.isRunning
+            ? 'bg-indigo-950/40 border-indigo-500/40 text-indigo-200'
+            : scraperStatus.error
+            ? 'bg-rose-950/40 border-rose-500/40 text-rose-200'
+            : 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+        }`}>
+          <div className="flex items-center space-x-2">
+            {scraperStatus.isRunning ? (
+              <Loader2 className="w-4 h-4 text-indigo-400 animate-spin shrink-0" />
+            ) : scraperStatus.error ? (
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            )}
+            <div>
+              <p className="font-semibold">{scraperStatus.progress}</p>
+            </div>
+          </div>
+          {scraperStatus.isRunning && (
+            <div className="font-mono text-[11px] bg-indigo-500/20 px-2 py-0.5 rounded">
+              {scraperStatus.currentCount} / {scraperStatus.maxJobs}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main Split View: Job List & Job Details Drawer */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
